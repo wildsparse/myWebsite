@@ -31,10 +31,21 @@
   }
 
   function boot() {
-    renderIntro();
     Letter.init(() => { /* 信读完了 */ });
 
+    /* 介绍页的文字推迟渲染：
+       它会触发一大批字体分片的下载，放在开场画面之后做，
+       首屏就只需要加载开场那几个字的字重。 */
+    let introReady = false;
+    function ensureIntro() {
+      if (introReady) return;
+      introReady = true;
+      renderIntro();
+    }
+    setTimeout(ensureIntro, 2200);
+
     $('toIntro').addEventListener('click', () => {
+      ensureIntro();
       showAct('act-intro');
       window.scrollTo(0, 0);
     });

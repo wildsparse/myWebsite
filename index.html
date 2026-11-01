@@ -3,1222 +3,190 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>一封写给你的信</title>
-<meta name="description" content="一封写给你的信。">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@300;400;600&display=swap" rel="stylesheet">
-
-<!--
-══════════════════════════════════════════════════════════════════
-  拾光信箱 · 版本 C
-  一份给朋友的生日礼物。整页是一封信，末尾是一台磁带机。
-
-  【你要改的东西，全部集中在下面这个 CONFIG 里】
-  ───────────────────────────────────────────────────────────────
-  1. 照片：把图片传到 GitHub 仓库的 images/ 文件夹，
-     然后在 photos 数组里按顺序填 { src, caption, date, tape }
-     tape 可选值：'tl' 'tr' 'bl' 'br'（胶带贴纸贴在哪一角）
-     图片没传？会自动显示一个手绘占位框，不会开天窗。
-
-  2. 音频：传到 audio/letter.mp3（或改成你自己的文件名），
-     只改 audio.src 一个字段。
-
-  3. 字幕：把音频里说的话按时间点写进 subtitles，
-     [{ t: 秒数, d: "这句话" }]，播放时会逐句高亮。
-     不会填也没关系，字幕区会自动隐藏。
-
-  4. 正文：信里的段落直接在 HTML 里改，<p class="reveal">。
-
-  照片数量想改就增删 CONFIG.photos 里的项，页面会自动排布。
-══════════════════════════════════════════════════════════════════
--->
-
-<script>
-/* ═══════════════ CONFIG ═══════════════ */
-const CONFIG = {
-  /* 收信人 / 落款 */
-  to: 'Zero',
-  from: '你的名字',
-  year: '2026',
-  dateLine: '二〇二六年 · 十月十九日',
-
-  /* 音频（传到 GitHub 的 audio/ 目录） */
-  audio: {
-    src: 'audio/letter.mp3',
-    title: '说不出口的那句',
-    hint: '这里有一句我一直说不出口的话。按下 PLAY。',
-    label: 'SIDE A · 说不出口的那句'
-  },
-
-  /* 字幕：按时间点填，不填就自动隐藏 */
-  subtitles: [
-    // { t: 0.5, d: '第一句台词' },
-    // { t: 4.0, d: '第二句台词' }
-  ],
-
-  /* 照片：填 src 即可，其余可留空 */
-  photos: [
-    { src: 'images/01.jpg', caption: '第一次见你，我没敢说话', date: '某年某月' },
-    { src: 'images/02.jpg', caption: '你笑的时候不太像你自己', date: '' },
-    { src: 'images/03.jpg', caption: '那天没有伞，我们跑了三条街', date: '' },
-    { src: 'images/04.jpg', caption: '深夜的马路，我们走了很久很久', date: '' },
-    { src: 'images/05.jpg', caption: '你说的话，我记到现在', date: '' },
-    { src: 'images/06.jpg', caption: '日子过得比我想象中快', date: '' }
-  ]
-};
-</script>
-
-<style>
-/* ═══════════════ 基础 ═══════════════ */
-:root{
-  --paper:        #F3ECDD;
-  --paper-deep:   #E7DCC6;
-  --paper-edge:   #D8C9AC;
-  --ink:          #3A3129;
-  --ink-soft:     #6B5D4E;
-  --ink-faint:    #9A8B77;
-  --wax:          #8E2B2B;
-  --wax-dark:     #6B1D1D;
-  --tape:         #E8DCB8;
-  --tape-edge:    #D6C695;
-  --deck:         #C9B48C;
-  --deck-dark:    #A98F63;
-  --deck-deep:    #8B7350;
-  --tape-brown:   #4A3826;
-  --tape-brown-l: #6E5236;
-  --needle:       #B23A2E;
-
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
-html{ scroll-behavior:smooth; }
-
-body{
-  font-family:'ZCOOL XiaoWei','Noto Serif SC',Georgia,serif;
-  background:#2A211A;
-  color:var(--ink);
-  line-height:2.1;
-  overflow-x:hidden;
-  min-height:100vh;
-}
-
-/* ═══════════════ 入场：信封 + 火漆 ═══════════════ */
-#gate{
-  position:fixed; inset:0; z-index:200;
-  background:radial-gradient(ellipse at 50% 42%, #4A3A2C 0%, #241C16 62%, #16110D 100%);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:34px; padding:24px;
-  transition:opacity .9s ease, visibility .9s;
-}
-#gate.gone{ opacity:0; visibility:hidden; pointer-events:none; }
-
-.envelope{
-  position:relative; width:min(78vw, 340px); aspect-ratio:3/2;
-  cursor:pointer; perspective:900px;
-}
-.envelope .body{
-  position:absolute; inset:0; border-radius:6px;
-  background:linear-gradient(155deg,#D9C9A8 0%,#C6B28C 46%,#B49E76 100%);
-  box-shadow:0 26px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.35);
-}
-.envelope .body::after{
-  content:''; position:absolute; inset:0; border-radius:6px;
-  background-image:var(--grain); opacity:.14; mix-blend-mode:overlay; pointer-events:none;
-}
-.envelope .flap{
-  position:absolute; left:0; right:0; top:0; height:64%;
-  background:linear-gradient(170deg,#E0D1B1,#BFA980);
-  clip-path:polygon(0 0,100% 0,50% 100%);
-  transform-origin:top center;
-  transition:transform .85s cubic-bezier(.6,-0.25,.3,1.3);
-  border-radius:6px 6px 0 0;
-  z-index:3;
-}
-.envelope.open .flap{ transform:rotateX(180deg); }
-
-.wax{
-  position:absolute; left:50%; top:52%; z-index:4;
-  width:78px; height:78px; margin:-39px 0 0 -39px;
-  border-radius:50%;
-  background:radial-gradient(circle at 36% 30%, #B8413C 0%, var(--wax) 46%, var(--wax-dark) 100%);
-  box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 -4px 10px rgba(0,0,0,.35), inset 0 4px 8px rgba(255,255,255,.22);
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Ma Shan Zheng',cursive; font-size:30px; color:#F3D9C9;
-  transition:transform .3s ease;
-  animation:sealBreathe 3.2s ease-in-out infinite;
-}
-.wax span{ position:relative; z-index:2; }
-.wax::before{
-  content:''; position:absolute; inset:-5px; border-radius:50%;
-  background:radial-gradient(circle at 40% 34%, #A93834, var(--wax-dark));
-  z-index:-1; opacity:.85;
-}
-@keyframes sealBreathe{
-  0%,100%{ transform:scale(1) }
-  50%{ transform:scale(1.045) }
-}
-.envelope:hover .wax{ transform:scale(1.09); }
-.envelope.cracking .wax{
-  animation:none; transform:scale(1.3); opacity:0; filter:blur(4px);
-  transition:transform .45s ease, opacity .45s ease, filter .45s ease;
-}
-
-.gate-hint{
-  font-family:'Ma Shan Zheng',cursive; font-size:19px; letter-spacing:.32em;
-  color:#C6B18C; opacity:.8; animation:hintFloat 3s ease-in-out infinite;
-}
-@keyframes hintFloat{ 0%,100%{opacity:.55; transform:translateY(0)} 50%{opacity:.95; transform:translateY(-5px)} }
-
-/* ═══════════════ 信纸 ═══════════════ */
-#page{ position:relative; z-index:2; }
-
-.letter{
-  position:relative;
-  max-width:730px; margin:0 auto;
-  padding:76px 30px 0;
-  opacity:0; transform:translateY(26px) scale(.99);
-  transition:opacity 1.1s ease .15s, transform 1.1s cubic-bezier(.2,.8,.2,1) .15s;
-}
-.letter.in{ opacity:1; transform:none; }
-
-.sheet{
-  position:relative;
-  background-color:var(--paper);
-  background-image:
-    var(--grain),
-    radial-gradient(ellipse at 50% -10%, rgba(255,252,242,.75), transparent 60%),
-    radial-gradient(ellipse at 100% 100%, rgba(190,172,140,.35), transparent 55%);
-  background-blend-mode:overlay, normal, normal;
-  background-size:260px 260px, 100% 100%, 100% 100%;
-  box-shadow:0 2px 0 rgba(255,255,255,.4), 0 30px 70px rgba(0,0,0,.45);
-  padding:clamp(34px,6vw,62px) clamp(22px,5.4vw,58px) 0;
-}
-
-/* 折痕 */
-.fold{
-  position:absolute; left:0; right:0; height:16px; pointer-events:none; z-index:1;
-}
-.fold::before{
-  content:''; position:absolute; inset:0;
-  background:linear-gradient(to bottom, rgba(255,255,255,.55), rgba(140,118,84,.16) 46%, rgba(255,255,255,.4));
-}
-.fold::after{
-  content:''; position:absolute; inset:0;
-  background:linear-gradient(to bottom, rgba(90,72,48,.16), transparent 60%);
-}
-.fold.f1{ top:23% } .fold.f2{ top:57% } .fold.f3{ top:84% }
-
-/* 纸纤维噪点覆盖 */
-.sheet::before{
-  content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background-image:var(--grain); opacity:.06; mix-blend-mode:multiply;
-}
-
-/* 底部撕边 */
-.sheet-tail{
-  height:26px; margin:0 calc(-1 * clamp(22px,5.4vw,58px));
-  background-color:var(--paper);
-  -webkit-mask-image:linear-gradient(to bottom,#000 0,#000 55%,transparent 100%),
-    repeating-linear-gradient(90deg,#000 0 7px,rgba(0,0,0,.35) 7px 9px,#000 9px 15px);
-  -webkit-mask-composite:source-in;
-  mask-image:linear-gradient(to bottom,#000 0,#000 55%,transparent 100%),
-    repeating-linear-gradient(90deg,#000 0 7px,rgba(0,0,0,.35) 7px 9px,#000 9px 15px);
-  mask-composite:intersect;
-}
-
-/* ═══════════════ 抬头 ═══════════════ */
-.letter-head{ text-align:center; position:relative; z-index:2; padding-bottom:8px; }
-.letter-head .eyebrow{
-  font-size:12px; letter-spacing:.42em; color:var(--ink-faint);
-  text-indent:.42em; margin-bottom:26px;
-}
-.letter-head h1{
-  font-family:'Ma Shan Zheng',cursive; font-weight:400;
-  font-size:clamp(30px,8.4vw,46px); line-height:1.5;
-  color:var(--ink); letter-spacing:.1em; margin-bottom:18px;
-}
-.letter-head .sub{
-  font-size:13px; letter-spacing:.3em; color:var(--ink-faint);
-  text-indent:.3em;
-}
-.rule{
-  width:52px; height:1px; background:var(--ink-faint); opacity:.5;
-  margin:30px auto 0;
-}
-
-/* ═══════════════ 正文 ═══════════════ */
-.body-text{ position:relative; z-index:2; }
-.body-text p{
-  font-size:clamp(16px,4.3vw,18.5px);
-  line-height:2.35; letter-spacing:.05em;
-  color:var(--ink);
-  margin-bottom:1.55em;
-  text-align:justify;
-}
-.body-text p.indent{ text-indent:2em; }
-.body-text p.center{ text-align:center; }
-.body-text p.small{
-  font-size:13px; color:var(--ink-faint); letter-spacing:.16em; line-height:2;
-}
-.hand{
-  font-family:'Ma Shan Zheng',cursive; letter-spacing:.09em;
-}
-.gap{ height:26px; }
-
-.reveal{
-  opacity:0; transform:translateY(18px);
-  transition:opacity .95s ease, transform .95s cubic-bezier(.2,.8,.2,1);
-}
-.reveal.in{ opacity:1; transform:none; }
-
-/* ═══════════════ 拍立得 ═══════════════ */
-.shots{
-  position:relative; z-index:2;
-  margin:8px 0 46px;
-}
-.shot{
-  position:relative; margin:0 auto 46px; width:min(78%, 330px);
-  --rot:0deg;
-  opacity:0; transform:rotate(var(--rot)) translateY(30px) scale(.985);
-  transition:opacity .95s ease, transform .95s cubic-bezier(.2,.8,.2,1);
-}
-.shot.in{
-  opacity:1; transform:rotate(var(--rot)) translateY(0) scale(1);
-}
-.shot:nth-child(even){ margin-left:auto; margin-right:4%; }
-.shot:nth-child(odd){ margin-right:auto; margin-left:4%; }
-.shot[data-tape="tr"]{ --rot:2.2deg; }
-.shot[data-tape="bl"]{ --rot:-2.6deg; }
-.shot[data-tape="br"]{ --rot:1.6deg; }
-.shot[data-tape="tl"]{ --rot:-1.4deg; }
-
-.polaroid{
-  background:#FBF8F1; padding:11px 11px 0;
-  box-shadow:0 3px 8px rgba(60,44,24,.16), 0 14px 30px rgba(0,0,0,.26);
-  position:relative;
-}
-.polaroid .frame{
-  position:relative; aspect-ratio:1/1; overflow:hidden;
-  background:#E9E0CC;
-}
-.polaroid img{
-  width:100%; height:100%; object-fit:cover; display:block;
-  filter:sepia(.13) saturate(.9) contrast(1.04) brightness(1.04);
-  transform:scale(1.01);
-  transition:transform 1.1s cubic-bezier(.2,.8,.2,1), filter .6s ease;
-}
-.shot.in .polaroid img{ transform:scale(1.06); }
-.shot:hover .polaroid img{ filter:sepia(.05) saturate(1) contrast(1.02) brightness(1.06); }
-.polaroid .frame::after{
-  content:''; position:absolute; inset:0; pointer-events:none;
-  background-image:var(--grain); opacity:.1; mix-blend-mode:overlay;
-}
-/* 图片没传时的占位 */
-.frame.missing .ph{display:flex; }
-.frame.missing img{ display:none; }
-.frame .ph{
-  display:none; position:absolute; inset:0; flex-direction:column;
-  align-items:center; justify-content:center; gap:9px;
-  background:
-    repeating-linear-gradient(45deg,rgba(160,140,105,.09) 0 6px,transparent 6px 12px),
-    #E9E0CC;
-}
-.frame .ph .ph-ico{ width:34px; height:26px; border:1px dashed #B4A183; border-radius:2px; position:relative; }
-.frame .ph .ph-ico::before{
-  content:''; position:absolute; left:0; bottom:0; width:100%; height:12px;
-  background:linear-gradient(135deg,transparent 46%,#B4A183 47% 53%,transparent 54%);
-}
-.frame .ph .ph-tx{ font-size:11px; letter-spacing:.14em; color:#A2917A; }
-
-.polaroid .cap{
-  padding:11px 3px 13px; min-height:44px;
-}
-.polaroid .cap .c-text{
-  font-family:'Ma Shan Zheng',cursive; font-size:17px; line-height:1.55;
-  color:#4A3D2E; letter-spacing:.05em;
-}
-.polaroid .cap .c-date{
-  font-size:11px; letter-spacing:.2em; color:#A2937D; margin-top:5px;
-}
-
-/* 胶带 */
-.tape{
-  position:absolute; width:82px; height:26px; z-index:5;
-  background:linear-gradient(180deg, rgba(232,220,184,.86), rgba(214,198,149,.8));
-  box-shadow:0 1px 3px rgba(0,0,0,.14);
-  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 4px,#000 calc(100% - 4px),transparent 100%),
-    repeating-linear-gradient(90deg,rgba(0,0,0,.14) 0 2px,transparent 2px 5px);
-  -webkit-mask-composite:source-in;
-  mask-image:linear-gradient(90deg,transparent 0,#000 4px,#000 calc(100% - 4px),transparent 100%),
-    repeating-linear-gradient(90deg,rgba(0,0,0,.14) 0 2px,transparent 2px 5px);
-  mask-composite:intersect;
-  opacity:.94;
-}
-.tape::after{
-  content:''; position:absolute; inset:0;
-  background-image:var(--grain); opacity:.2; mix-blend-mode:multiply;
-}
-.tape.tl{ top:-11px; left:-18px; transform:rotate(-27deg); }
-.tape.tr{ top:-11px; right:-18px; transform:rotate(27deg); }
-.tape.bl{ bottom:26px; left:-18px; transform:rotate(24deg); }
-.tape.br{ bottom:26px; right:-18px; transform:rotate(-24deg); }
-
-/* 印章 */
-.stamp{
-  position:absolute; right:-6px; top:-26px; z-index:5;
-  width:56px; height:56px; border-radius:50%;
-  border:1.5px solid rgba(142,43,43,.42);
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Ma Shan Zheng',cursive; font-size:19px; color:rgba(142,43,43,.5);
-  transform:rotate(-14deg); letter-spacing:.02em;
-}
-
-/* ═══════════════ 便签 + 磁带机 ═══════════════ */
-.note{
-  position:relative; z-index:2;
-  max-width:430px; margin:8px auto 0;
-  background:linear-gradient(178deg,#FBEFC0,#F4E4A6);
-  padding:26px 24px 22px;
-  box-shadow:0 8px 22px rgba(70,52,22,.22);
-  transform:rotate(-1.4deg);
-}
-.note::before{
-  content:''; position:absolute; inset:0;
-  background-image:var(--grain); opacity:.12; mix-blend-mode:multiply; pointer-events:none;
-}
-.note p{
-  font-family:'Ma Shan Zheng',cursive; font-size:clamp(17px,4.6vw,20px);
-  line-height:1.85; color:#4E4326; letter-spacing:.04em; margin-bottom:18px;
-}
-.note .arrow{
-  text-align:center; font-size:19px; color:#8A6B2E; line-height:1;
-}
-
-/* 磁带机 */
-.tape-deck{
-  position:relative; z-index:2;
-  max-width:520px; margin:34px auto 0;
-  border-radius:12px;
-  padding:20px 18px 18px;
-  background:
-    linear-gradient(178deg, #D9C7A2 0%, var(--deck) 30%, #BEa87F 70%, var(--deck-dark) 100%);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,.5) inset,
-    0 -2px 6px rgba(0,0,0,.22) inset,
-    0 22px 44px rgba(0,0,0,.45),
-    0 4px 10px rgba(0,0,0,.3);
-  user-select:none;
-}
-.tape-deck::before{
-  content:''; position:absolute; inset:0; border-radius:12px; pointer-events:none;
-  background-image:var(--grain); opacity:.13; mix-blend-mode:overlay;
-}
-/* 四角螺丝 */
-.screw{
-  position:absolute; width:9px; height:9px; border-radius:50%;
-  background:radial-gradient(circle at 34% 30%, #E4D6B4, #9A8259);
-  box-shadow:inset 0 0 0 .5px rgba(0,0,0,.35);
-}
-.screw::after{
-  content:''; position:absolute; left:1px; right:1px; top:4px; height:1px;
-  background:rgba(0,0,0,.35); transform:rotate(28deg);
-}
-.screw.s1{ top:8px; left:9px } .screw.s2{ top:8px; right:9px }
-.screw.s3{ bottom:8px; left:9px } .screw.s4{ bottom:8px; right:9px }
-
-.deck-label{
-  text-align:center; font-size:10px; letter-spacing:.34em; text-indent:.34em;
-  color:#7C6644; margin-bottom:12px; font-family:var(--font-sans,system-ui),sans-serif;
-}
-
-/* 卷盘 */
-.reels{ display:flex; align-items:center; justify-content:center; gap:clamp(8px,2.4vw,18px); }
-.well{
-  position:relative; width:clamp(74px,21vw,104px); aspect-ratio:1/1; border-radius:50%;
-  background:radial-gradient(circle at 42% 32%, #2A211A, #17110C 70%);
-  box-shadow:inset 0 3px 10px rgba(0,0,0,.75), 0 1px 0 rgba(255,255,255,.28);
-  display:flex; align-items:center; justify-content:center; overflow:hidden;
-}
-.well::after{
-  content:''; position:absolute; inset:0; border-radius:50%; pointer-events:none;
-  background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.2), transparent 46%);
-}
-.reel{ transform-origin:50% 50%; will-change:transform; }
-.reel svg{ display:block; width:100%; height:100%; }
-.well-tag{
-  position:absolute; bottom:-19px; left:50%; transform:translateX(-50%);
-  font-size:8.5px; letter-spacing:.24em; color:#6E5A3B;
-  font-family:var(--font-sans,system-ui),sans-serif; white-space:nowrap;
-}
-
-/* 磁带窗 */
-.tape-window{
-  flex:1 1 auto; min-width:0; height:34px; border-radius:4px;
-  background:#241A11; position:relative; overflow:hidden;
-  box-shadow:inset 0 2px 6px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.3);
-  display:flex; align-items:center;
-}
-.ribbon{
-  position:absolute; left:0; right:0; top:50%; height:13px; transform:translateY(-50%);
-  background:
-    linear-gradient(180deg,var(--tape-brown-l),var(--tape-brown) 55%,#3A2B1D);
-  background-size:26px 100%, 26px 100%;
-  box-shadow:0 0 6px rgba(0,0,0,.5);
-}
-.ribbon::after{
-  content:''; position:absolute; inset:0;
-  background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 2px,transparent 2px 6px);
-}
-
-/* 波形 + VU */
-.meters{
-  display:flex; align-items:center; gap:12px;
-  margin:20px 0 16px;
-}
-.wave-box{
-  flex:1 1 auto; min-width:0; height:46px;
-  background:#1C150E; border-radius:4px;
-  box-shadow:inset 0 2px 7px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.26);
-  padding:5px; position:relative; overflow:hidden;
-}
-#wave{ display:block; width:100%; height:100%; }
-
-.vu{
-  flex:0 0 auto; width:clamp(74px,20vw,96px);
-}
-.vu svg{ display:block; width:100%; height:auto; }
-#vuNeedle{
-  transform-origin:50% 100%;
-  transition:transform .07s linear;
-}
-
-/* 控制键 */
-.controls{
-  display:flex; align-items:center; justify-content:center; gap:clamp(12px,4vw,26px);
-}
-.key{
-  position:relative; border:none; cursor:pointer; font-family:inherit;
-  background:linear-gradient(180deg,#E7D6AE 0%,#CDB587 48%,#A98F63 100%);
-  color:#4A3A22; border-radius:4px;
-  box-shadow:0 3px 0 var(--deck-deep), 0 5px 8px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.6);
-  transition:transform .08s ease, box-shadow .08s ease;
-  display:flex; align-items:center; justify-content:center;
-}
-.key:active,.key.down{ transform:translateY(3px); box-shadow:0 0 0 var(--deck-deep), 0 2px 4px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5); }
-.key.small{ width:46px; height:34px; }
-.key.play{ width:76px; height:56px; border-radius:6px; }
-.key .gly{ font-size:14px; letter-spacing:-1px; color:#4A3A22; }
-.key.play .gly{ font-size:22px; }
-.key .cap{
-  position:absolute; bottom:-17px; left:50%; transform:translateX(-50%);
-  font-size:8px; letter-spacing:.2em; color:#6E5A3B; white-space:nowrap;
-  font-family:var(--font-sans,system-ui),sans-serif;
-}
-
-/* 计数器 */
-.counter-row{
-  display:flex; align-items:center; justify-content:space-between;
-  margin-top:26px; gap:12px;
-}
-.counter{
-  font-family:'DS-Digital','Courier New',monospace;
-  font-size:19px; letter-spacing:.13em;
-  color:#2A2118; background:#16110C;
-  padding:5px 12px; border-radius:3px;
-  box-shadow:inset 0 2px 6px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.3);
-  font-variant-numeric:tabular-nums;
-}
-.deck-title{ font-size:11px; letter-spacing:.22em; color:#6E5A3B; text-align:right; line-height:1.7; }
-.deck-title b{ display:block; font-family:'Ma Shan Zheng',cursive; font-size:15px; color:#4E3C22; letter-spacing:.06em; font-weight:400; }
-
-/* 缺失提示 */
-.tape-missing{
-  display:none; margin-top:22px; padding:14px; text-align:center;
-  background:rgba(60,44,20,.1); border:1px dashed rgba(90,70,36,.4); border-radius:5px;
-  font-size:12px; letter-spacing:.1em; color:#5E4A28; line-height:1.9;
-}
-.tape-missing.show{ display:block; }
-
-/* 字幕 */
-.subs{
-  position:relative; z-index:2;
-  max-width:520px; margin:34px auto 0; min-height:60px;
-  text-align:center;
-}
-.subs.hidden{ display:none; }
-.subs .line{
-  font-size:clamp(15px,4.1vw,17px); line-height:2.05; letter-spacing:.06em;
-  color:var(--ink-faint); opacity:.42;
-  transition:opacity .45s ease, color .45s ease, transform .45s ease;
-  transform:translateY(3px);
-}
-.subs .line.on{
-  opacity:1; color:var(--ink); transform:none;
-  font-family:'Ma Shan Zheng',cursive; font-size:clamp(19px,5.2vw,23px);
-}
-
-/* 呼吸提示 */
-.breathe{
-  position:relative; z-index:2;
-  text-align:center; margin:0 auto; max-width:520px;
-  font-size:12px; letter-spacing:.2em; color:var(--ink-faint);
-  transition:opacity .6s ease;
-}
-.breathe.hide{ opacity:0; }
-.breathe .dot{
-  display:inline-block; width:6px; height:6px; border-radius:50%;
-  background:var(--wax); margin-right:9px; vertical-align:middle;
-  animation:dotPulse 2.1s ease-in-out infinite;
-}
-@keyframes dotPulse{ 0%,100%{opacity:.25; transform:scale(.8)} 50%{opacity:1; transform:scale(1.25)} }
-
-/* ═══════════════ 尾部 ═══════════════ */
-.closing{
-  position:relative; z-index:2;
-  padding:70px 0 20px; text-align:center;
-}
-.closing .line1{
-  font-family:'Ma Shan Zheng',cursive;
-  font-size:clamp(28px,7.6vw,40px); letter-spacing:.16em; color:var(--ink);
-  margin-bottom:10px;
-}
-.closing .only{
-  margin-top:46px; font-size:12px; letter-spacing:.28em; color:var(--ink-faint);
-  text-indent:.28em;
-}
-
-/* 回信 */
-.reply{
-  position:relative; z-index:2;
-  max-width:520px; margin:40px auto 0;
-  background:rgba(255,253,246,.55);
-  border:1px dashed rgba(120,100,68,.34);
-  padding:24px 22px 20px;
-}
-.reply h3{
-  font-family:'Ma Shan Zheng',cursive; font-size:19px; font-weight:400;
-  color:#54452F; letter-spacing:.08em; margin-bottom:6px;
-}
-.reply .tip{ font-size:11.5px; letter-spacing:.12em; color:var(--ink-faint); margin-bottom:14px; }
-.reply textarea{
-  width:100%; min-height:92px; resize:vertical;
-  background:transparent; border:none; border-bottom:1px solid rgba(120,100,68,.3);
-  font-family:'Ma Shan Zheng',cursive; font-size:18px; line-height:1.9;
-  color:#3E3222; outline:none; padding:6px 0;
-}
-.reply textarea::placeholder{ color:#B0A088; }
-.reply .row{ display:flex; align-items:center; justify-content:space-between; margin-top:16px; gap:12px; }
-.reply .saved{ font-size:11px; letter-spacing:.1em; color:var(--ink-faint); }
-.reply button{
-  font-family:inherit; font-size:13px; letter-spacing:.2em; text-indent:.2em;
-  padding:8px 20px; cursor:pointer; color:#FBF6E9;
-  background:linear-gradient(180deg,#7E4440,#5E2E2B);
-  border:none; border-radius:3px;
-  box-shadow:0 2px 6px rgba(0,0,0,.28);
-}
-.reply button:active{ transform:translateY(2px); box-shadow:0 1px 3px rgba(0,0,0,.28); }
-
-/* 页脚 */
-.foot{
-  position:relative; z-index:2;
-  padding:56px 20px 70px; text-align:center;
-  font-size:11px; letter-spacing:.24em; color:rgba(200,186,160,.45);
-  line-height:2.4;
-}
-
-/* ═══════════════ 放大查看 ═══════════════ */
-.lightbox{
-  position:fixed; inset:0; z-index:300; display:none;
-  background:rgba(18,13,9,.93); padding:5vh 5vw;
-  align-items:center; justify-content:center; cursor:zoom-out;
-}
-.lightbox.show{ display:flex; }
-.lightbox img{
-  max-width:100%; max-height:88vh; object-fit:contain;
-  box-shadow:0 24px 60px rgba(0,0,0,.7);
-  filter:sepia(.08) contrast(1.03);
-}
-.lightbox .cap{
-  position:absolute; bottom:4vh; left:0; right:0; text-align:center;
-  font-family:'Ma Shan Zheng',cursive; font-size:18px; color:#E4D6B6; letter-spacing:.08em;
-}
-.lightbox .close{
-  position:absolute; top:3vh; right:4vw;
-  font-size:26px; color:#B9A882; line-height:1; cursor:pointer;
-}
-
-/* ═══════════════ 响应式 ═══════════════ */
-@media (max-width:640px){
-  .letter{ padding:34px 12px 0; }
-  .sheet{ padding:30px 20px 0; }
-  .fold{ display:none; }
-  .shot{ width:84%; }
-  .note{ padding:22px 18px 18px; }
-  .tape-deck{ padding:16px 12px 14px; }
-  .reply{ margin-left:4px; margin-right:4px; }
-  .body-text p{ line-height:2.2; }
-}
-@media (prefers-reduced-motion:reduce){
-  *{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
-  html{ scroll-behavior:auto; }
-}
-</style>
+<title>ZERO RT</title>
+<meta name="description" content="ZERO RT · 一方小天地。">
+<meta name="theme-color" content="#0a0806">
+<meta name="format-detection" content="telephone=no">
+<link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 
-<!-- ══════════ 入场 ══════════ -->
-<div id="gate">
-  <div class="envelope" id="envelope" role="button" tabindex="0" aria-label="拆开信封">
-    <div class="body"></div>
-    <div class="flap"></div>
-    <div class="wax"><span>信</span></div>
+<div class="atmosphere"></div>
+
+<!-- ══════════════════════════════════════════════
+     第一幕 · 信
+     ══════════════════════════════════════════════ -->
+<section class="act is-active" id="act-letter">
+
+  <div class="overture" id="overture">
+    <p class="overture-to" id="overtureTo"></p>
+    <button class="overture-hint" id="overtureHint">轻 触 开 始</button>
   </div>
-  <div class="gate-hint">拆 开</div>
-</div>
 
-<!-- ══════════ 信 ══════════ -->
-<main id="page">
-  <div class="letter" id="letter">
-    <div class="sheet">
-      <div class="fold f1"></div>
-      <div class="fold f2"></div>
-      <div class="fold f3"></div>
-
-      <!-- 抬头 -->
-      <header class="letter-head reveal">
-        <div class="eyebrow" id="eyebrow">一封信</div>
-        <h1 id="greeting">写给你的</h1>
-        <div class="sub" id="dateLine">二〇二六年 · 十月十九日</div>
-        <div class="rule"></div>
-      </header>
-
-      <!-- 正文 -->
-      <div class="body-text">
-        <div class="gap"></div>
-        <p class="reveal indent">见信如面。</p>
-        <p class="reveal">我不太擅长当面说这些，说出来总觉得轻了，写下来才留得住。所以我写了这一封，慢慢看，不着急。</p>
-        <p class="reveal">有些话我们当天说得云淡风轻，回想起来却分量很重。下面这些，都是我后来才慢慢咂摸出味道来的事。</p>
-
-        <div class="gap"></div>
-        <p class="reveal center small">— 你走过的这些日子 —</p>
-
-        <!-- 拍立得（由 CONFIG.photos 渲染） -->
-        <div class="shots" id="shots"></div>
-
-        <p class="reveal">日子是怎么过去的，我有时候真的想不起来。可有些东西它自己会长出来，不声不响的，像那棵树。</p>
-        <p class="reveal">生日快乐。</p>
-        <p class="reveal small center" style="margin-top:30px">— 还有一句，是我说不出口的 —</p>
-      </div>
-
-      <!-- 便签 + 磁带机 -->
-      <div class="note reveal">
-        <p id="noteText">这里有一句我一直说不出口的话。</p>
-        <p class="arrow">↓</p>
-      </div>
-
-      <section class="breathe reveal" id="breathe">
-        <span class="dot"></span>按下 PLAY
-      </section>
-
-      <div class="tape-deck reveal" id="deck">
-        <i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i>
-        <div class="deck-label">PRIVATE RECORDING · SIDE A</div>
-
-        <div class="reels">
-          <div class="well">
-            <div class="reel" id="reelL"><svg viewBox="0 0 100 100" aria-hidden="true">
-              <defs><radialGradient id="tg" cx="38%" cy="34%">
-                <stop offset="0%" stop-color="#6E5236"/><stop offset="100%" stop-color="#3A2B1D"/>
-              </radialGradient></defs>
-              <circle cx="50" cy="50" r="49" fill="url(#tg)"/>
-              <circle cx="50" cy="50" r="49" fill="none" stroke="#2A1E14" stroke-width="1"/>
-              <g fill="#2A1E14" opacity=".92">
-                <circle cx="50" cy="27" r="9"/><circle cx="70" cy="62" r="9"/><circle cx="30" cy="62" r="9"/>
-              </g>
-              <circle cx="50" cy="50" r="11" fill="#B49A6E"/>
-              <circle cx="50" cy="50" r="11" fill="none" stroke="#2A1E14" stroke-width=".8"/>
-              <g stroke="#2A1E14" stroke-width="3.2" stroke-linecap="round" opacity=".85">
-                <path d="M50 39 L50 43"/><path d="M60.5 55.5 L57.5 53"/><path d="M39.5 55.5 L42.5 53"/>
-              </g>
-              <circle cx="50" cy="50" r="3" fill="#2A1E14"/>
-            </svg></div>
-            <span class="well-tag">SUPPLY</span>
-          </div>
-
-          <div class="tape-window"><i class="ribbon" id="ribbon"></i></div>
-
-          <div class="well">
-            <div class="reel" id="reelR"><svg viewBox="0 0 100 100" aria-hidden="true">
-              <circle cx="50" cy="50" r="49" fill="url(#tg)"/>
-              <circle cx="50" cy="50" r="49" fill="none" stroke="#2A1E14" stroke-width="1"/>
-              <g fill="#2A1E14" opacity=".92">
-                <circle cx="50" cy="27" r="9"/><circle cx="70" cy="62" r="9"/><circle cx="30" cy="62" r="9"/>
-              </g>
-              <circle cx="50" cy="50" r="11" fill="#B49A6E"/>
-              <circle cx="50" cy="50" r="11" fill="none" stroke="#2A1E14" stroke-width=".8"/>
-              <g stroke="#2A1E14" stroke-width="3.2" stroke-linecap="round" opacity=".85">
-                <path d="M50 39 L50 43"/><path d="M60.5 55.5 L57.5 53"/><path d="M39.5 55.5 L42.5 53"/>
-              </g>
-              <circle cx="50" cy="50" r="3" fill="#2A1E14"/>
-            </svg></div>
-            <span class="well-tag">TAKE-UP</span>
-          </div>
-        </div>
-
-        <div class="meters">
-          <div class="wave-box"><canvas id="wave"></canvas></div>
-          <div class="vu">
-            <svg viewBox="0 0 100 62" aria-hidden="true">
-              <path d="M8 56 A 42 42 0 0 1 92 56" fill="none" stroke="#6E5A3B" stroke-width="1.2"/>
-              <path d="M20 54 A 30 30 0 0 1 80 54" fill="none" stroke="#8B7350" stroke-width=".8" opacity=".7"/>
-              <g stroke="#5A482C" stroke-width="1" opacity=".8">
-                <line x1="14" y1="52" x2="14" y2="46"/><line x1="30" y1="36" x2="33" y2="41"/>
-                <line x1="50" y1="25" x2="50" y2="33"/><line x1="70" y1="36" x2="67" y2="41"/>
-                <line x1="86" y1="52" x2="86" y2="46"/>
-              </g>
-              <text x="12" y="60" font-size="8" fill="#6E5A3B" font-family="system-ui,sans-serif">VU</text>
-              <g id="vuNeedle">
-                <line x1="50" y1="56" x2="50" y2="18" stroke="#B23A2E" stroke-width="1.6" stroke-linecap="round"/>
-              </g>
-              <circle cx="50" cy="56" r="3" fill="#4A3A22"/>
-            </svg>
-          </div>
-        </div>
-
-        <div class="controls">
-          <button class="key small" id="keyRew" aria-label="快退5秒"><span class="gly">◀◀</span></button>
-          <button class="key play" id="keyPlay" aria-label="播放"><span class="gly" id="playGly">▶</span></button>
-          <button class="key small" id="keyFwd" aria-label="快进5秒"><span class="gly">▶▶</span></button>
-        </div>
-
-        <div class="counter-row">
-          <div class="counter" id="counter">00:00 / 00:00</div>
-          <div class="deck-title">
-            <b id="deckTitle">说不出口的那句</b>
-            <span id="deckSub">写给你的 · 独家</span>
-          </div>
-        </div>
-
-        <div class="tape-missing" id="tapeMissing">
-          还没有找到音频文件。<br>
-          请把音频放到仓库的 <b>audio/</b> 目录，并把 CONFIG.audio.src 改成对应文件名。
-        </div>
-      </div>
-
-      <div class="subs hidden" id="subs"></div>
-
-      <!-- 尾部 -->
-      <div class="closing">
-        <div class="reveal line1">生日快乐</div>
-        <div class="reveal only">这封信只发给他一个人</div>
-      </div>
-
-      <!-- 回信 -->
-      <div class="reply reveal">
-        <h3>回信</h3>
-        <div class="tip">写点什么，我会留在这里。下次打开还在。</div>
-        <textarea id="replyBox" placeholder="写在这里……"></textarea>
-        <div class="row">
-          <span class="saved" id="replySaved"></span>
-          <button id="replyBtn">封 好</button>
-        </div>
-      </div>
-
-      <div class="sheet-tail"></div>
+  <div class="letter-scroll" id="letterScroll">
+    <div class="letter-inner" id="letterInner">
+      <div class="letter-heading" id="letterHeading"></div>
+      <div id="letterBody"></div>
+      <div class="letter-closing" id="letterClosing"></div>
+      <div class="letter-sign" id="letterSign"></div>
     </div>
   </div>
 
-  <footer class="foot">
-    <div id="footSign">— 你的名字 · 写于二〇二六年秋 —</div>
-  </footer>
-</main>
+  <div class="letter-bar" id="letterBar">
+    <button class="audio-btn" id="audioBtn">
+      <span class="ring"><i class="audio-icon"></i></span>
+      <span id="audioLabel">一封信的声音</span>
+    </button>
+    <button class="skip-btn" id="skipBtn">显示全文</button>
+    <button class="btn-ghost btn-next" id="toIntro" hidden>下 一 步</button>
+  </div>
+</section>
 
-<audio id="audio" preload="metadata"></audio>
+<!-- ══════════════════════════════════════════════
+     第二幕 · 介绍
+     ══════════════════════════════════════════════ -->
+<section class="act" id="act-intro">
+  <div class="intro-box">
+    <p class="intro-kicker" id="introKicker"></p>
+    <h1 class="intro-title" id="introTitle"></h1>
+    <div class="intro-lines" id="introLines"></div>
+    <div class="intro-foot">
+      <button class="btn-ghost" id="toHole"></button>
+    </div>
+  </div>
+</section>
 
-<!-- 放大查看 -->
-<div class="lightbox" id="lightbox">
-  <div class="close" id="lbClose">×</div>
-  <img id="lbImg" alt="">
-  <div class="cap" id="lbCap"></div>
+<!-- ══════════════════════════════════════════════
+     第三幕 · 树洞
+     ══════════════════════════════════════════════ -->
+<section class="act" id="act-hole">
+
+  <header class="hole-head">
+    <div class="hole-head-in">
+      <div class="brand" id="brand"></div>
+      <nav class="tabs">
+        <button class="tab is-on" data-pane="memories" id="tabMemories"></button>
+        <button class="tab" data-pane="messages" id="tabMessages"></button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="hole-main">
+    <div class="pane is-on" id="pane-memories">
+      <div class="pane-hint"><span>照片，和照片背后的那点事</span></div>
+      <div class="mem-grid" id="memGrid"></div>
+      <div class="empty" id="memEmpty" hidden></div>
+    </div>
+
+    <div class="pane" id="pane-messages">
+      <div class="pane-hint"><span>想说什么都行</span></div>
+      <div class="msg-list" id="msgList"></div>
+      <div class="empty" id="msgEmpty" hidden></div>
+    </div>
+  </main>
+
+  <div class="fab-menu" id="fabMenu">
+    <button data-add="memory">加一段回忆</button>
+    <button data-add="message">写点什么</button>
+  </div>
+  <button class="fab" id="fab" aria-label="添加">+</button>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     弹窗：口令
+     ══════════════════════════════════════════════ -->
+<div class="modal-mask" id="keyMask">
+  <div class="modal is-narrow">
+    <h2 class="modal-title" id="keyTitle"></h2>
+    <p class="modal-sub" id="keySub"></p>
+    <div class="field">
+      <input type="password" id="keyInput" autocomplete="off" placeholder="……">
+    </div>
+    <p class="form-err" id="keyErr"></p>
+    <div class="modal-actions">
+      <button class="btn-plain" data-close="keyMask">算了</button>
+      <button class="btn-solid" id="keyOk">进去</button>
+    </div>
+  </div>
 </div>
 
-<script>
-(function(){
-'use strict';
+<!-- ══════════════════════════════════════════════
+     弹窗：加回忆
+     ══════════════════════════════════════════════ -->
+<div class="modal-mask" id="memMask">
+  <div class="modal">
+    <h2 class="modal-title">加一段回忆</h2>
+    <p class="modal-sub">照片会被自动压缩，长边 1600px，肉眼看不出来。</p>
 
-/* ══════════════ 基础 ══════════════ */
-const $  = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
-const C  = CONFIG;
+    <div class="field">
+      <label>照片</label>
+      <div class="drop" id="drop">
+        <span>点击选一张<br>或者拖进来</span>
+        <img id="dropPreview" alt="" hidden>
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+    </div>
 
-document.getElementById('eyebrow').textContent = '一 封 信';
-document.getElementById('greeting').textContent = '写 给 ' + C.to;
-document.getElementById('dateLine').textContent = C.dateLine;
-document.getElementById('noteText').textContent = C.audio.hint;
-document.getElementById('deckTitle').textContent = C.audio.title;
-document.getElementById('footSign').textContent = '— ' + C.from + ' · 写于' + C.year + ' —';
+    <div class="field">
+      <label>标题</label>
+      <input type="text" id="memTitle" maxlength="40" placeholder="给这张照片起个名字">
+    </div>
 
-/* ══════════════ 1. 入场 ══════════════ */
-const gate = $('#gate'), env = $('#envelope'), letter = $('#letter');
-let opened = false;
-function openGate(){
-  if(opened) return; opened = true;
-  env.classList.add('cracking');
-  setTimeout(()=>{ env.classList.add('open'); }, 380);
-  setTimeout(()=>{
-    gate.classList.add('gone');
-    letter.classList.add('in');
-    observeAll();
-  }, 950);
-}
-env.addEventListener('click', openGate);
-env.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') { e.preventDefault(); openGate(); } });
-window.addEventListener('keydown', e => { if(!opened && (e.key==='Enter'||e.key===' ')) openGate(); });
+    <div class="field">
+      <label>说明</label>
+      <textarea id="memNote" rows="3" maxlength="500" placeholder="那天发生了什么"></textarea>
+    </div>
 
-/* ══════════════ 2. 照片 ══════════════ */
-const TAPE_POS = ['tl','tr','bl','br'];
-function renderShots(){
-  const wrap = $('#shots');
-  if(!C.photos || !C.photos.length){
-    wrap.innerHTML = '<p class="reveal small center">照片还没放进来。</p>';
-    return;
-  }
-  wrap.innerHTML = C.photos.map((p,i)=>{
-    const tape = TAPE_POS[i % 4];
-    return '<figure class="shot" data-tape="'+tape+'">'
-      + '<div class="tape '+tape+'"></div>'
-      + (i===2 ? '<div class="stamp">'+C.year+'</div>' : '')
-      + '<div class="polaroid">'
-      +   '<div class="frame" data-src="'+ (p.src||'') +'">'
-      +     '<img alt="" src="'+ (p.src||'') +'" loading="lazy">'
-      +     '<div class="ph"><div class="ph-ico"></div><div class="ph-tx">照片位 · '+((p.src||'').split('/').pop()||'待放')+'</div></div>'
-      +   '</div>'
-      +   '<figcaption class="cap">'
-      +     (p.caption ? '<div class="c-text">'+(p.caption)+'</div>' : '')
-      +     (p.date ? '<div class="c-date">'+(p.date)+'</div>' : '')
-      +   '</figcaption>'
-      + '</div>'
-      + '</figure>';
-  }).join('');
+    <div class="field">
+      <label>时间</label>
+      <input type="date" id="memDate">
+    </div>
 
-  $$('#shots .frame').forEach(frame=>{
-    const img = frame.querySelector('img');
-    const mark = () => frame.classList.add('missing');
-    if(img.complete && img.naturalWidth === 0) mark();
-    img.addEventListener('error', mark);
-    img.addEventListener('load', ()=>{ if(img.naturalWidth>0) frame.classList.remove('missing'); });
-  });
+    <div class="field">
+      <label>谁</label>
+      <div class="chip-row" id="memAuthorChips"></div>
+    </div>
 
-  $$('#shots .shot').forEach(shot=>{
-    shot.addEventListener('click', ()=>{
-      const img = shot.querySelector('img');
-      if(!img || !img.naturalWidth) return;
-      $('#lbImg').src = img.currentSrc || img.src;
-      $('#lbCap').textContent = shot.querySelector('.c-text')?.textContent || '';
-      $('#lightbox').classList.add('show');
-    });
-  });
-}
-renderShots();
-$('#lbClose').addEventListener('click', ()=> $('#lightbox').classList.remove('show'));
-$('#lightbox').addEventListener('click', ()=> $('#lightbox').classList.remove('show'));
+    <p class="form-err" id="memErr"></p>
+    <div class="modal-actions">
+      <button class="btn-plain" data-close="memMask">先不放</button>
+      <button class="btn-solid" id="memOk">放进去</button>
+    </div>
+  </div>
+</div>
 
-/* ══════════════ 3. 滚动显现 ══════════════ */
-let io = null;
-function observeAll(){
-  if(!io){
-    io = new IntersectionObserver(es=>{
-      es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-    },{ threshold:.16, rootMargin:'0px 0px -6% 0px' });
-  }
-  $$('.reveal:not(.in), .shot:not(.in)').forEach(el=>io.observe(el));
-}
+<!-- ══════════════════════════════════════════════
+     弹窗：留言
+     ══════════════════════════════════════════════ -->
+<div class="modal-mask" id="msgMask">
+  <div class="modal">
+    <h2 class="modal-title">写点什么</h2>
+    <p class="modal-sub">不用讲道理，想到什么说什么。</p>
 
-/* ══════════════ 4. 音频 + Web Audio ══════════════ */
-const audio = $('#audio');
-audio.src = C.audio.src;
+    <div class="field">
+      <label>谁在说</label>
+      <div class="chip-row" id="msgAuthorChips"></div>
+    </div>
 
-let actx=null, analyser=null, srcNode=null, gainNode=null, hissNode=null;
-let waveData=null, played=0, missing=false;
-let angL=0, angR=0, lastT=0;
+    <div class="field">
+      <label>内容</label>
+      <textarea id="msgContent" rows="5" maxlength="1000" placeholder="……"></textarea>
+    </div>
 
-function initAudioGraph(){
-  if(actx) return;
-  try{
-    actx = new (window.AudioContext||window.webkitAudioContext)();
-    analyser = actx.createAnalyser();
-    analyser.fftSize = 2048;
-    analyser.smoothingTimeConstant = .78;
-    srcNode = actx.createMediaElementSource(audio);
-    srcNode.connect(analyser);
-    analyser.connect(actx.destination);
-  }catch(e){
-    analyser = null;                 // 环境不支持时优雅降级
-  }
-}
+    <p class="form-err" id="msgErr"></p>
+    <div class="modal-actions">
+      <button class="btn-plain" data-close="msgMask">算了</button>
+      <button class="btn-solid" id="msgOk">说完了</button>
+    </div>
+  </div>
+</div>
 
-/* 合成"咔哒"机械声（无需音频文件） */
-function clickSound(freq, dur, gain){
-  if(!actx) return;
-  const t = actx.currentTime;
-  const buf = actx.createBuffer(1, Math.ceil(actx.sampleRate*dur), actx.sampleRate);
-  const d = buf.getChannelData(0);
-  for(let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/d.length, 3);
-  const src = actx.createBufferSource(); src.buffer = buf;
-  const bp = actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=freq; bp.Q.value=2.2;
-  const g = actx.createGain(); g.gain.value = gain;
-  src.connect(bp); bp.connect(g); g.connect(actx.destination);
-  src.start(t);
-}
-/* 磁带底噪 */
-function startHiss(){
-  if(!actx || hissNode) return;
-  const len = actx.sampleRate * 2;
-  const buf = actx.createBuffer(1, len, actx.sampleRate);
-  const d = buf.getChannelData(0);
-  let last = 0;
-  for(let i=0;i<len;i++){ const w = Math.random()*2-1; last = last*.94 + w*.06; d[i] = last; }
-  hissNode = actx.createBufferSource(); hissNode.buffer = buf; hissNode.loop = true;
-  const lp = actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 2600;
-  const g = actx.createGain(); g.gain.value = 0;
-  hissNode.connect(lp); lp.connect(g); g.connect(actx.destination);
-  hissNode.start();
-  hissNode._g = g;
-  g.gain.setTargetAtTime(.055, actx.currentTime, .35);
-}
-function stopHiss(){
-  if(!hissNode) return;
-  hissNode._g.gain.setTargetAtTime(0, actx.currentTime, .18);
-}
+<div class="toast" id="toast"></div>
 
-/* 读音频画真实波形 */
-async function loadWaveform(){
-  try{
-    const res = await fetch(C.audio.src);
-    if(!res.ok) throw new Error('404');
-    const buf = await res.arrayBuffer();
-    const ac2 = new (window.AudioContext||window.webkitAudioContext)();
-    const decoded = await ac2.decodeAudioData(buf);
-    waveData = decoded.getChannelData(0);
-    ac2.close();
-    drawWave(0);
-  }catch(e){
-    waveData = null;                 // 画一条合成的静态波形
-    drawWave(0);
-  }
-}
-
-/* ══════════════ 5. 波形绘制 ══════════════ */
-const waveCv = $('#wave'), wctx = waveCv.getContext('2d');
-let wBars = [];
-function sizeWave(){
-  const r = waveCv.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio||1, 2);
-  waveCv.width = Math.max(1, Math.round(r.width*dpr));
-  waveCv.height = Math.max(1, Math.round(r.height*dpr));
-  wctx.setTransform(dpr,0,0,dpr,0,0);
-  wBars = [];
-  const n = Math.max(24, Math.floor(r.width/3.4));
-  if(waveData){
-    const step = Math.floor(waveData.length/n) || 1;
-    for(let i=0;i<n;i++){
-      let mx = 0;
-      const s = i*step;
-      for(let j=s;j<Math.min(s+step, waveData.length);j+=8) mx = Math.max(mx, Math.abs(waveData[j]));
-      wBars.push(Math.max(.06, mx));
-    }
-  }else{
-    for(let i=0;i<n;i++) wBars.push(.16 + .72*Math.abs(Math.sin(i*.55)*Math.cos(i*.19)) * (.4+.6*Math.abs(Math.sin(i*.11))));
-  }
-  drawWave(played);
-}
-function drawWave(p){
-  const r = waveCv.getBoundingClientRect();
-  const W = r.width, H = r.height, mid = H/2;
-  wctx.clearRect(0,0,W,H);
-  const bw = W/Math.max(1,wBars.length);
-  wBars.forEach((v,i)=>{
-    const h = Math.max(1.6, v*(H*.86));
-    const x = i*bw;
-    wctx.fillStyle = (i/(wBars.length-1||1) <= p) ? '#C3E39A' : 'rgba(196,175,132,.30)';
-    wctx.fillRect(x, mid-h/2, Math.max(.8, bw*.56), h);
-  });
-}
-window.addEventListener('resize', sizeWave);
-
-/* ══════════════ 6. VU 表 ══════════════ */
-const vuNeedle = $('#vuNeedle');
-function setVu(rms){
-  const db = 20*Math.log10(Math.max(rms, .0001));
-  const norm = Math.max(0, Math.min(1, (db + 46)/46));
-  const ang = -50 + norm*100;
-  vuNeedle.style.transform = 'rotate('+ang.toFixed(2)+'deg)';
-}
-
-/* ══════════════ 7. 磁带卷盘 ══════════════ */
-const reelL = $('#reelL'), reelR = $('#reelR'), ribbon = $('#ribbon');
-const MAXR = 46, HUBR = 12;
-function radiusAt(frac){
-  return HUBR + (MAXR - HUBR)*Math.sqrt(Math.max(0, Math.min(1, frac)));
-}
-function drawReels(p, dt){
-  const rL = radiusAt(1-p), rR = radiusAt(p);
-  const scaleL = rL/49, scaleR = rR/49;
-  const base = 92;                                   // px/s 走带速度
-  angL += (base/Math.max(rL,8))*dt;
-  angR += (base/Math.max(rR,8))*dt;
-  reelL.style.transform = 'rotate('+angL.toFixed(2)+'deg) scale('+scaleL.toFixed(3)+')';
-  reelR.style.transform = 'rotate('+angR.toFixed(2)+'deg) scale('+scaleR.toFixed(3)+')';
-  // 磁带窗里的带子随之横移
-  ribbon.style.backgroundPosition = off.toFixed(1)+'px 0';
-}
-/* 初始卷盘大小：左满右空 */
-drawReels(0,0);
-
-/* ══════════════ 8. 字幕 ══════════════ */
-const subsBox = $('#subs');
-let subs = [];
-function buildSubs(){
-  subs = (C.subtitles||[]).filter(s=>s && typeof s.d === 'string').map(s=>({t:+s.t||0, d:s.d}));
-  if(!subs.length){ subsBox.classList.add('hidden'); return; }
-  subsBox.classList.remove('hidden');
-  subsBox.innerHTML = subs.map(s=>'<div class="line">'+s.d+'</div>').join('');
-}
-buildSubs();
-function syncSubs(t){
-  if(!subs.length) return;
-  const nodes = subsBox.children;
-  let idx = -1;
-  for(let i=0;i<subs.length;i++){ if(t >= subs[i].t) idx = i; else break; }
-  for(let i=0;i<nodes.length;i++) nodes[i].classList.toggle('on', i===idx);
-}
-
-/* ══════════════ 9. 播放控制 ══════════════ */
-const keyPlay = $('#keyPlay'), playGly = $('#playGly'), counter = $('#counter');
-const breathe = $('#breathe');
-
-function fmt(s){
-  if(!isFinite(s) || s<0) s = 0;
-  const m = Math.floor(s/60), x = Math.floor(s%60);
-  return String(m).padStart(2,'0') + ':' + String(x).padStart(2,'0');
-}
-function syncTimeUI(){
-  counter.textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration||0);
-  if(audio.duration) played = audio.currentTime/audio.duration;
-  drawWave(played);
-  syncSubs(audio.currentTime);
-}
-audio.addEventListener('loadedmetadata', ()=>{ syncTimeUI(); sizeWave(); });
-audio.addEventListener('error', ()=>{
-  missing = true;
-  $('#tapeMissing').classList.add('show');
-  keyPlay.disabled = true; keyPlay.style.opacity = '.45';
-});
-
-function play(){
-  initAudioGraph();
-  if(actx && actx.state === 'suspended') actx.resume();
-  audio.play().then(()=>{
-    clickSound(1800,.05,.16); startHiss();
-    keyPlay.classList.add('down');
-    playGly.textContent = '❚❚';
-    breathe.classList.add('hide');
-  }).catch(()=>{
-    $('#tapeMissing').classList.add('show');
-  });
-}
-function pause(){
-  audio.pause();
-  stopHiss();
-  keyPlay.classList.remove('down');
-  playGly.textContent = '▶';
-}
-keyPlay.addEventListener('click', ()=>{ audio.paused ? play() : pause(); });
-$('#keyRew').addEventListener('click', ()=>{ initAudioGraph(); clickSound(1400,.04,.13); audio.currentTime = Math.max(0, audio.currentTime-5); });
-$('#keyFwd').addEventListener('click', ()=>{ initAudioGraph(); clickSound(2200,.04,.13); audio.currentTime = Math.min(audio.duration||0, audio.currentTime+5); });
-audio.addEventListener('ended', ()=>{
-  stopHiss(); keyPlay.classList.remove('down'); playGly.textContent = '▶';
-  played = 0; drawWave(0); setVu(0);
-  document.querySelector('.closing .line1').textContent = '生日快乐';
-});
-audio.addEventListener('pause', ()=>{ stopHiss(); keyPlay.classList.remove('down'); playGly.textContent = '▶'; });
-audio.addEventListener('play', ()=>{ keyPlay.classList.add('down'); playGly.textContent = '❚❚'; breathe.classList.add('hide'); });
-
-/* 空格键播放/暂停（输入框内不劫持） */
-document.addEventListener('keydown', e=>{
-  if(e.code !== 'Space') return;
-  const t = e.target;
-  if(t && (t.tagName==='TEXTAREA'||t.tagName==='INPUT')) return;
-  if($('#lightbox').classList.contains('show')) return;
-  e.preventDefault();
-  audio.paused ? play() : pause();
-});
-
-/* 滚到磁带机时开始呼吸提示 */
-if('IntersectionObserver' in window){
-  const bo = new IntersectionObserver(es=>{
-    es.forEach(e=>{
-      if(e.isIntersecting){ breathe.classList.remove('hide'); bo.unobserve(e.target); }
-    });
-  },{ threshold:.35 });
-  bo.observe($('#deck'));
-} else { breathe.classList.remove('hide'); }
-
-/* ══════════════ 10. 渲染循环：VU + 卷盘 + 波形 ══════════════ */
-function frame(){
-  let rms = 0;
-  if(analyser && !audio.paused){
-    const buf = new Uint8Array(analyser.fftSize);
-    analyser.getByteTimeDomainData(buf);
-    let sum = 0;
-    for(let i=0;i<buf.length;i++){ const v = (buf[i]-128)/128; sum += v*v; }
-    rms = Math.sqrt(sum/buf.length);
-  }else{
-    // 无分析器时：用波形数据做伪 RMS，画面一样活
-    rms = 0;
-  }
-  const target = missing ? 0 : (rms>.45 ? .45 : rms);
-  setVu(target);
-
-  const dt = 1/60;
-  if(!audio.paused && audio.duration){
-    drawReels(played, dt);
-    syncTimeUI();
-  }else{
-    setVu(0);
-  }
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
-
-/* ══════════════ 11. 回信 ══════════════ */
-const KEY = 'reply_to_' + (C.to||'');
-const box = $('#replyBox'), savedTip = $('#replySaved');
-try{
-  const v = localStorage.getItem(KEY);
-  if(v){ box.value = v; savedTip.textContent = '上次写于本机 · 已保存'; }
-}catch(e){}
-$('#replyBtn').addEventListener('click', ()=>{
-  const v = box.value.trim();
-  if(!v){ savedTip.textContent = '还没写呢'; return; }
-  try{
-    localStorage.setItem(KEY, v);
-    savedTip.textContent = '已封好 · ' + new Date().toLocaleDateString('zh-CN');
-  }catch(e){ savedTip.textContent = '这个浏览器不让存，但这次我记住了'; }
-  box.blur();
-});
-
-/* ══════════════ 12. 启动 ══════════════ */
-audio.load();
-loadWaveform();
-requestAnimationFrame(sizeWave);
-window.addEventListener('load', ()=>{ sizeWave(); });
-
-})();
-</script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/letter.js"></script>
+<script src="js/hole.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

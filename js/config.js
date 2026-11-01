@@ -147,15 +147,32 @@ const INTRO = {
 const HOLE = {
   // 页面顶部
   brand: 'ZERO RT',
-  tabs: { memories: '我们的回忆', messages: '留言板' },
+  tabs: { memories: '我们的回忆', messages: '留言板', todos: '一起做清单' },
+
+  // 顶部那一行小字：{date} {mem} {msg} 会被替换成实际数字
+  todayLine: '{date}　这里存着 {mem} 段回忆、{msg} 条留言',
+
+  // 回忆的两种看法
+  viewGrid: '网格',
+  viewTimeline: '时间线',
+
+  // 每个分区的提示
+  hintMemories: '照片，和照片背后的那点事',
+  hintMessages: '想说什么都行',
+  hintTodos: '想一起做的事，做完了就勾掉',
 
   // 空状态文案
   emptyMemories: '还没有放照片进来。第一张，要不要是你拍的？',
   emptyMessages: '还没有人说话。第一个开口的人，可以先骂我一句。',
+  emptyTodos: '还没写下想一起做的事。哪怕只是「去吃一次那家店」。',
+
+  // 清除完成项
+  clearDone: '收拾掉已经做完的',
 
   // 添加面板
   addMemory: '加一段回忆',
   addMessage: '写点什么',
+  addTodo: '加一件事',
 
   // 口令：这里只放"问题"，答案不写在前端（线上由后端校验）
   keyPrompt: '我们的小狗叫什么！',

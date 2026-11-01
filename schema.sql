@@ -17,8 +17,19 @@ CREATE TABLE IF NOT EXISTS messages (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   author       TEXT,
   content      TEXT NOT NULL,
+  photos       TEXT,              -- JSON 数组，最多两张压缩后的图
   created_at   TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS todos (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  text         TEXT NOT NULL,
+  done         INTEGER NOT NULL DEFAULT 0,
+  author       TEXT,
+  created_at   TEXT NOT NULL,
+  done_at      TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_memories_created ON memories (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_created ON messages (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_todos_created ON todos (created_at DESC);

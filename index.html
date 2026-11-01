@@ -7,6 +7,7 @@
 <meta name="description" content="ZERO RT · 一方小天地。">
 <meta name="theme-color" content="#0a0806">
 <meta name="format-detection" content="telephone=no">
+<link rel="stylesheet" href="css/wenkai.css">
 <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
@@ -67,27 +68,46 @@
       <nav class="tabs">
         <button class="tab is-on" data-pane="memories" id="tabMemories"></button>
         <button class="tab" data-pane="messages" id="tabMessages"></button>
+        <button class="tab" data-pane="todos" id="tabTodos"></button>
       </nav>
     </div>
+    <div class="today-line" id="todayLine"></div>
   </header>
 
   <main class="hole-main">
     <div class="pane is-on" id="pane-memories">
-      <div class="pane-hint"><span>照片，和照片背后的那点事</span></div>
+      <div class="pane-bar">
+        <div class="pane-hint"><span id="hintMemories"></span></div>
+        <div class="view-switch" id="viewSwitch">
+          <button data-view="grid" class="is-on"></button>
+          <button data-view="timeline"></button>
+        </div>
+      </div>
       <div class="mem-grid" id="memGrid"></div>
+      <div class="mem-timeline" id="memTimeline" hidden></div>
       <div class="empty" id="memEmpty" hidden></div>
     </div>
 
     <div class="pane" id="pane-messages">
-      <div class="pane-hint"><span>想说什么都行</span></div>
+      <div class="pane-hint"><span id="hintMessages"></span></div>
       <div class="msg-list" id="msgList"></div>
       <div class="empty" id="msgEmpty" hidden></div>
+    </div>
+
+    <div class="pane" id="pane-todos">
+      <div class="pane-bar">
+        <div class="pane-hint"><span id="hintTodos"></span></div>
+        <button class="clear-done" id="clearDone" hidden></button>
+      </div>
+      <div class="todo-list" id="todoList"></div>
+      <div class="empty" id="todoEmpty" hidden></div>
     </div>
   </main>
 
   <div class="fab-menu" id="fabMenu">
     <button data-add="memory">加一段回忆</button>
     <button data-add="message">写点什么</button>
+    <button data-add="todo">加一件事</button>
   </div>
   <button class="fab" id="fab" aria-label="添加">+</button>
 </section>
@@ -173,6 +193,12 @@
       <textarea id="msgContent" rows="5" maxlength="1000" placeholder="……"></textarea>
     </div>
 
+    <div class="field">
+      <label>照片 <em class="lbl-note">可以不选，最多两张</em></label>
+      <div class="mini-picker" id="msgPicker"></div>
+      <input type="file" id="msgFile" accept="image/*" hidden>
+    </div>
+
     <p class="form-err" id="msgErr"></p>
     <div class="modal-actions">
       <button class="btn-plain" data-close="msgMask">算了</button>
@@ -180,6 +206,35 @@
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════════
+     弹窗：加一件事
+     ══════════════════════════════════════════════ -->
+<div class="modal-mask" id="todoMask">
+  <div class="modal is-narrow">
+    <h2 class="modal-title">想一起做什么</h2>
+    <p class="modal-sub">不用想得很远，想到什么写什么。</p>
+
+    <div class="field">
+      <label>这件事</label>
+      <input type="text" id="todoText" maxlength="80" placeholder="比如：去看一次海">
+    </div>
+
+    <div class="field">
+      <label>谁想到的</label>
+      <div class="chip-row" id="todoAuthorChips"></div>
+    </div>
+
+    <p class="form-err" id="todoErr"></p>
+    <div class="modal-actions">
+      <button class="btn-plain" data-close="todoMask">算了</button>
+      <button class="btn-solid" id="todoOk">记下</button>
+    </div>
+  </div>
+</div>
+
+<!-- 看大图 -->
+<div class="lightbox" id="lightbox"><img id="lightboxImg" alt=""></div>
 
 <div class="toast" id="toast"></div>
 

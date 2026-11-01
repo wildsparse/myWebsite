@@ -1,5 +1,5 @@
 /* ============================================================
-   hole.js —— 第三幕：树洞（回忆 / 留言）
+   hole.js —— 第三幕：树洞（回忆 / 留言 / 一起做清单）
    ============================================================ */
 
 const Hole = (function () {
@@ -8,8 +8,12 @@ const Hole = (function () {
 
   let memItems = [];
   let msgItems = [];
+  let todoItems = [];
   let currentPane = 'memories';
+  let memView = 'grid';                 // 'grid' | 'timeline'
   let pendingMemAuthor = HOLE.authors[0];
+  let msgAuthor = HOLE.authors[0];
+  let todoAuthor = HOLE.authors[0];
 
   /* ---------- 小工具 ---------- */
   function el(tag, cls, text) {
@@ -35,6 +39,11 @@ const Hole = (function () {
     return fmtDate(iso) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
   }
 
+  function fmtToday() {
+    const d = new Date();
+    return d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日';
+  }
+
   function toast(msg) {
     const t = $('toast');
     t.textContent = msg;
@@ -45,6 +54,16 @@ const Hole = (function () {
 
   function openModal(id) { $(id).classList.add('is-on'); }
   function closeModal(id) { $(id).classList.remove('is-on'); }
+
+  /* ---------- 看大图 ---------- */
+  function openLightbox(src) {
+    $('lightboxImg').src = src;
+    $('lightbox').classList.add('is-on');
+  }
+  function closeLightbox() {
+    $('lightbox').classList.remove('is-on');
+    setTimeout(() => { if (!$('lightbox').classList.contains('is-on')) $('lightboxImg').removeAttribute('src'); }, 300);
+  }
 
   /* ---------- 口令 ---------- */
   let keyResolver = null;
@@ -96,7 +115,16 @@ const Hole = (function () {
     askKey().then((ok) => { if (ok) toast('好了，再点一次刚才的按钮'); });
   }
 
-  /* ---------- 渲染：回忆 ---------- */
+  /* ---------- 顶部那一行 ---------- */
+  function renderStats() {
+    if (!$('todayLine')) return;
+    $('todayLine').textContent = HOLE.todayLine
+      .replace('{date}', fmtToday())
+      .replace('{mem}', memItems.length)
+      .replace('{msg}', msgItems.length);
+  }
+
+  /* ---------- 渲染：回忆（网格） ---------- */
   function renderMemories() {
     const grid = $('memGrid');
     grid.innerHTML = '';
@@ -113,6 +141,7 @@ const Hole = (function () {
         img.src = m.photo;
         img.alt = m.title || '回忆';
         img.loading = 'lazy';
+        img.addEventListener('click', () => openLightbox(m.photo));
         photo.appendChild(img);
       } else {
         photo.classList.add('is-empty');
@@ -141,6 +170,94 @@ const Hole = (function () {
     });
   }
 
+  /* ---------- 渲染：回忆（时间线） ---------- */
+  function memYear(m) {
+    const raw = m.happened_at || m.created_at || '';
+    const y = String(raw).slice(0, 4);
+    return /^\d{4}$/.test(y) ? y : '很久以前';
+  }
+
+  function renderTimeline() {
+    const box = $('memTimeline');
+    box.innerHTML = '';
+    if (!memItems.length) return;
+
+    /* 有确切日子的按日子排，没有的退回到收藏那天 */
+    const sorted = memItems.slice().sort((a, b) => {
+      const ka = String(a.happened_at || a.created_at || '');
+      const kb = String(b.happened_at || b.created_at || '');
+      return kb.localeCompare(ka);
+    });
+
+    let lastYear = null;
+    sorted.forEach((m, i) => {
+      const y = memYear(m);
+      if (y !== lastYear) {
+        lastYear = y;
+        const head = el('div', 'tl-year');
+        head.appendChild(el('span', 'tl-year-num', y));
+        const n = sorted.filter(x => memYear(x) === y).length;
+        head.appendChild(el('span', 'tl-year-count', n + ' 段'));
+        box.appendChild(head);
+      }
+
+      const row = el('div', 'tl-item');
+      row.style.animationDelay = Math.min(i * 45, 450) + 'ms';
+
+      const side = el('div', 'tl-side');
+      const when = m.happened_at ? fmtDate(m.happened_at).slice(5) : '';
+      side.appendChild(el('span', 'tl-date', when));
+      side.appendChild(el('i', 'tl-dot'));
+
+      const card = el('div', 'tl-card');
+
+      if (m.photo) {
+        const thumb = el('div', 'tl-thumb');
+        const img = document.createElement('img');
+        img.src = m.photo;
+        img.alt = m.title || '回忆';
+        img.loading = 'lazy';
+        img.addEventListener('click', () => openLightbox(m.photo));
+        thumb.appendChild(img);
+        card.appendChild(thumb);
+      }
+
+      const body = el('div', 'tl-body');
+      if (m.title) body.appendChild(el('div', 'tl-title', m.title));
+      if (m.note) body.appendChild(el('div', 'tl-note', m.note));
+      const meta = el('div', 'tl-meta');
+      if (m.author) meta.appendChild(el('span', null, m.author));
+      if (meta.childNodes.length) body.appendChild(meta);
+      card.appendChild(body);
+
+      const del = el('button', 'del-btn', '×');
+      del.title = '删掉这条';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeMemory(m);
+      });
+      card.appendChild(del);
+
+      row.append(side, card);
+      box.appendChild(row);
+    });
+  }
+
+  function renderMemPane() {
+    renderMemories();
+    if (memView === 'timeline') renderTimeline();
+    $('memGrid').hidden = memView !== 'grid';
+    $('memTimeline').hidden = memView !== 'timeline';
+  }
+
+  function setView(v) {
+    memView = v;
+    document.querySelectorAll('#viewSwitch button').forEach(b => {
+      b.classList.toggle('is-on', b.dataset.view === v);
+    });
+    renderMemPane();
+  }
+
   /* ---------- 渲染：留言 ---------- */
   function renderMessages() {
     const list = $('msgList');
@@ -162,8 +279,64 @@ const Hole = (function () {
       del.title = '删掉这条';
       del.addEventListener('click', () => removeMessage(m));
 
-      card.append(head, body, del);
+      card.append(head, body);
+
+      const shots = Array.isArray(m.photos) ? m.photos.filter(Boolean) : [];
+      if (shots.length) {
+        const strip = el('div', 'msg-shots');
+        shots.forEach((src) => {
+          const th = el('button', 'msg-thumb');
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = '照片';
+          img.loading = 'lazy';
+          th.appendChild(img);
+          th.addEventListener('click', () => openLightbox(src));
+          strip.appendChild(th);
+        });
+        card.appendChild(strip);
+      }
+
+      card.appendChild(del);
       list.appendChild(card);
+    });
+  }
+
+  /* ---------- 渲染：一起做清单 ---------- */
+  function renderTodos() {
+    const list = $('todoList');
+    list.innerHTML = '';
+    $('todoEmpty').hidden = todoItems.length > 0;
+    $('todoEmpty').textContent = HOLE.emptyTodos;
+
+    const doneCount = todoItems.filter(t => t.done).length;
+    const clearBtn = $('clearDone');
+    clearBtn.hidden = doneCount === 0;
+    clearBtn.textContent = HOLE.clearDone + '（' + doneCount + '）';
+
+    todoItems.forEach((t, i) => {
+      const row = el('div', 'todo-item' + (t.done ? ' is-done' : ''));
+      row.style.animationDelay = Math.min(i * 40, 400) + 'ms';
+
+      const check = el('button', 'todo-check');
+      check.setAttribute('aria-label', t.done ? '撤销' : '做完了');
+      check.addEventListener('click', () => toggleTodo(t));
+
+      const main = el('div', 'todo-main');
+      main.appendChild(el('span', 'todo-text', t.text));
+      const meta = el('span', 'todo-meta');
+      if (t.author) meta.textContent = t.author;
+      if (t.done && t.done_at) {
+        meta.textContent = (t.author ? t.author + '　' : '') + fmtDate(t.done_at) + ' 做完了';
+      }
+      if (meta.textContent) main.appendChild(meta);
+
+      const del = el('button', 'del-btn', '×');
+      del.title = '删掉这条';
+      del.addEventListener('click', () => removeTodo(t));
+
+      row.append(check, main, del);
+      list.appendChild(row);
     });
   }
 
@@ -174,7 +347,8 @@ const Hole = (function () {
     try {
       await API.delMemory(m.id);
       memItems = memItems.filter(x => String(x.id) !== String(m.id));
-      renderMemories();
+      renderMemPane();
+      renderStats();
       toast('删掉了');
     } catch (e) {
       if (e.message === 'KEY') handleKeyError();
@@ -189,10 +363,42 @@ const Hole = (function () {
       await API.delMessage(m.id);
       msgItems = msgItems.filter(x => String(x.id) !== String(m.id));
       renderMessages();
+      renderStats();
       toast('删掉了');
     } catch (e) {
       if (e.message === 'KEY') handleKeyError();
       else toast('没删掉，等下再试');
+    }
+  }
+
+  async function removeTodo(t) {
+    if (!confirm('删掉「' + t.text + '」？')) return;
+    if (!API.hasKey()) { const ok = await ensureKey(); if (!ok) return; }
+    try {
+      await API.delTodo(t.id);
+      todoItems = todoItems.filter(x => String(x.id) !== String(t.id));
+      renderTodos();
+      toast('删掉了');
+    } catch (e) {
+      if (e.message === 'KEY') handleKeyError();
+      else toast('没删掉，等下再试');
+    }
+  }
+
+  async function clearDoneTodos() {
+    const done = todoItems.filter(t => t.done);
+    if (!done.length) return;
+    if (!confirm('把已经做完的这 ' + done.length + ' 件收起来？') ) return;
+    if (!API.hasKey()) { const ok = await ensureKey(); if (!ok) return; }
+    try {
+      for (const t of done) await API.delTodo(t.id);
+      const ids = new Set(done.map(t => String(t.id)));
+      todoItems = todoItems.filter(x => !ids.has(String(x.id)));
+      renderTodos();
+      toast('收好了');
+    } catch (e) {
+      if (e.message === 'KEY') handleKeyError();
+      else toast('没弄完，等下再试');
     }
   }
 
@@ -228,14 +434,16 @@ const Hole = (function () {
     return c.toDataURL('image/jpeg', quality);
   }
 
-  async function compressForUpload(file) {
-    const LIMIT = 560 * 1024;               // dataURL 长度上限，安全底线
-    let side = 1600, q = 0.86;
+  async function compressForUpload(file, maxSide, quality, limit) {
+    maxSide = maxSide || 1600;
+    let q = quality || 0.86;
+    const LIMIT = limit || 560 * 1024;
+    let side = maxSide;
     let out = await compress(file, side, q);
 
     while (out.length > LIMIT) {
       if (q > 0.55) { q -= 0.09; }
-      else if (side > 900) { side -= 300; q = 0.72; }
+      else if (side > 700) { side -= 250; q = 0.72; }
       else break;
       out = await compress(file, side, q);
     }
@@ -302,7 +510,8 @@ const Hole = (function () {
         author: pendingMemAuthor || null
       });
       memItems.unshift(item);
-      renderMemories();
+      renderMemPane();
+      renderStats();
       closeModal('memMask');
       toast('放进去了');
     } catch (e) {
@@ -313,26 +522,66 @@ const Hole = (function () {
     }
   }
 
-  /* ---------- 添加：留言 ---------- */
+  /* ---------- 添加：留言（可带两张图） ---------- */
+  let msgPhotos = [null, null];
+  let pickTarget = 0;
+
+  function renderMsgPicker() {
+    const box = $('msgPicker');
+    box.innerHTML = '';
+    for (let i = 0; i < 2; i++) {
+      const slot = el('div', 'mini-slot');
+      if (msgPhotos[i]) {
+        slot.classList.add('has-img');
+        const img = document.createElement('img');
+        img.src = msgPhotos[i];
+        img.alt = '照片 ' + (i + 1);
+        slot.appendChild(img);
+        const rm = el('button', 'mini-rm', '×');
+        rm.title = '拿掉这张';
+        rm.addEventListener('click', (e) => {
+          e.stopPropagation();
+          msgPhotos[i] = null;
+          renderMsgPicker();
+        });
+        slot.appendChild(rm);
+      } else {
+        slot.appendChild(el('span', 'mini-plus', '+'));
+      }
+      slot.addEventListener('click', () => {
+        if (msgPhotos[i]) return;
+        pickTarget = i;
+        $('msgFile').value = '';
+        $('msgFile').click();
+      });
+      box.appendChild(slot);
+    }
+  }
+
   function openMsgModal() {
     $('msgContent').value = '';
     $('msgErr').textContent = '';
+    msgPhotos = [null, null];
+    renderMsgPicker();
     openModal('msgMask');
     setTimeout(() => $('msgContent').focus(), 320);
   }
 
   async function submitMessage() {
     const content = $('msgContent').value.trim();
-    if (!content) { $('msgErr').textContent = '还没写呢。'; return; }
+    const shots = msgPhotos.filter(Boolean);
+    if (!content && !shots.length) { $('msgErr').textContent = '还没写呢。'; return; }
     $('msgOk').disabled = true;
     $('msgErr').textContent = '';
     try {
       const item = await API.addMessage({
         author: msgAuthor || null,
-        content: content
+        content: content || '（一张照片）',
+        photos: shots
       });
       msgItems.unshift(item);
       renderMessages();
+      renderStats();
       closeModal('msgMask');
       toast('说出去了');
     } catch (e) {
@@ -343,9 +592,52 @@ const Hole = (function () {
     }
   }
 
-  /* ---------- 作者选择 ---------- */
-  let msgAuthor = HOLE.authors[0];
+  /* ---------- 添加：一起做清单 ---------- */
+  function openTodoModal() {
+    $('todoText').value = '';
+    $('todoErr').textContent = '';
+    openModal('todoMask');
+    setTimeout(() => $('todoText').focus(), 320);
+  }
 
+  async function submitTodo() {
+    const text = $('todoText').value.trim();
+    if (!text) { $('todoErr').textContent = '写一件想做的事。'; return; }
+    $('todoOk').disabled = true;
+    $('todoErr').textContent = '';
+    try {
+      const item = await API.addTodo({ text, author: todoAuthor || null });
+      todoItems.unshift(item);
+      renderTodos();
+      closeModal('todoMask');
+      toast('记下了');
+    } catch (e) {
+      if (e.message === 'KEY') { closeModal('todoMask'); handleKeyError(); }
+      else $('todoErr').textContent = '没记上：' + e.message;
+    } finally {
+      $('todoOk').disabled = false;
+    }
+  }
+
+  async function toggleTodo(t) {
+    if (!API.hasKey()) { const ok = await ensureKey(); if (!ok) return; }
+    const next = !t.done;
+    try {
+      const item = await API.toggleTodo(t.id, next);
+      todoItems = todoItems.map(x => String(x.id) === String(t.id) ? Object.assign({}, x, item || {}) : x);
+      todoItems.sort((a, b) => {
+        if (!!a.done !== !!b.done) return a.done ? 1 : -1;
+        return String(b.created_at).localeCompare(String(a.created_at));
+      });
+      renderTodos();
+      if (next) toast('又少一件');
+    } catch (e) {
+      if (e.message === 'KEY') handleKeyError();
+      else toast('没改成，等下再试');
+    }
+  }
+
+  /* ---------- 作者选择 ---------- */
   function buildChips(container, list, onPick, initial) {
     container.innerHTML = '';
     list.forEach((name) => {
@@ -362,16 +654,20 @@ const Hole = (function () {
 
   /* ---------- 加载 ---------- */
   async function loadAll() {
-    const grid = $('memGrid');
-    for (let i = 0; i < 3; i++) grid.appendChild(el('div', 'skeleton'));
+    for (let i = 0; i < 3; i++) $('memGrid').appendChild(el('div', 'skeleton'));
     try {
-      const [mems, msgs] = await Promise.all([API.listMemories(), API.listMessages()]);
+      const [mems, msgs, todos] = await Promise.all([
+        API.listMemories(), API.listMessages(), API.listTodos()
+      ]);
       memItems = mems;
       msgItems = msgs;
-      renderMemories();
+      todoItems = todos;
+      renderMemPane();
       renderMessages();
+      renderTodos();
+      renderStats();
     } catch (e) {
-      grid.innerHTML = '';
+      $('memGrid').innerHTML = '';
       $('memEmpty').hidden = false;
       $('memEmpty').textContent = '没能读到数据。检查一下网络，或者稍后再来。';
     }
@@ -393,12 +689,25 @@ const Hole = (function () {
     $('brand').textContent = HOLE.brand;
     $('tabMemories').textContent = HOLE.tabs.memories;
     $('tabMessages').textContent = HOLE.tabs.messages;
+    $('tabTodos').textContent = HOLE.tabs.todos;
+    $('hintMemories').textContent = HOLE.hintMemories;
+    $('hintMessages').textContent = HOLE.hintMessages;
+    $('hintTodos').textContent = HOLE.hintTodos;
+    $('viewSwitch').children[0].textContent = HOLE.viewGrid;
+    $('viewSwitch').children[1].textContent = HOLE.viewTimeline;
     document.querySelector('[data-add="memory"]').textContent = HOLE.addMemory;
     document.querySelector('[data-add="message"]').textContent = HOLE.addMessage;
+    document.querySelector('[data-add="todo"]').textContent = HOLE.addTodo;
 
     document.querySelectorAll('.tab').forEach(t => {
       t.addEventListener('click', () => switchPane(t.dataset.pane));
     });
+
+    document.querySelectorAll('#viewSwitch button').forEach(b => {
+      b.addEventListener('click', () => setView(b.dataset.view));
+    });
+
+    $('clearDone').addEventListener('click', clearDoneTodos);
 
     /* FAB */
     const fab = $('fab'), menu = $('fabMenu');
@@ -421,8 +730,12 @@ const Hole = (function () {
       menu.classList.remove('is-on'); fab.classList.remove('is-open');
       if (await ensureKey()) openMsgModal();
     });
+    menu.querySelector('[data-add="todo"]').addEventListener('click', async () => {
+      menu.classList.remove('is-on'); fab.classList.remove('is-open');
+      if (await ensureKey()) openTodoModal();
+    });
 
-    /* 图片选择 */
+    /* 回忆选图 */
     const drop = $('drop'), fileInput = $('fileInput');
     drop.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => onFile(e.target.files[0]));
@@ -435,15 +748,38 @@ const Hole = (function () {
       if (f) onFile(f);
     });
 
+    /* 留言选图 */
+    $('msgFile').addEventListener('change', async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      if (!f.type.startsWith('image/')) { toast('这不是图片'); return; }
+      $('msgErr').textContent = '处理中……';
+      try {
+        const d = await compressForUpload(f, 1000, 0.82, 380 * 1024);
+        msgPhotos[pickTarget] = d;
+        renderMsgPicker();
+        $('msgErr').textContent = '';
+      } catch (err) {
+        $('msgErr').textContent = err.message || '读不了这张图';
+      }
+    });
+
     /* 确认按钮 */
     $('memOk').addEventListener('click', submitMemory);
     $('msgOk').addEventListener('click', submitMessage);
+    $('todoOk').addEventListener('click', submitTodo);
+    $('todoText').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitTodo();
+    });
 
     /* 口令 */
     $('keyOk').addEventListener('click', submitKey);
     $('keyInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') submitKey();
     });
+
+    /* 看大图 */
+    $('lightbox').addEventListener('click', closeLightbox);
 
     /* 关闭 */
     document.querySelectorAll('[data-close]').forEach(btn => {
@@ -459,6 +795,7 @@ const Hole = (function () {
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if ($('lightbox').classList.contains('is-on')) { closeLightbox(); return; }
         document.querySelectorAll('.modal-mask.is-on').forEach(m => m.classList.remove('is-on'));
       }
     });
@@ -466,6 +803,7 @@ const Hole = (function () {
     /* 作者 chips */
     buildChips($('memAuthorChips'), HOLE.authors, (n) => { pendingMemAuthor = n; }, HOLE.authors[0]);
     buildChips($('msgAuthorChips'), HOLE.authors, (n) => { msgAuthor = n; }, HOLE.authors[0]);
+    buildChips($('todoAuthorChips'), HOLE.authors, (n) => { todoAuthor = n; }, HOLE.authors[0]);
 
     API.probe().then((mode) => {
       if (mode === 'local') {

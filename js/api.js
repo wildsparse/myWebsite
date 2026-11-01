@@ -8,6 +8,7 @@ const API = (function () {
   const K_KEY = 'th.key';
   const K_MEM = 'th.local.memories';
   const K_MSG = 'th.local.messages';
+  const K_TODO = 'th.local.todos';
 
   let mode = null;          // 'remote' | 'local'
   let memCache = [];        // 本地模式下的缓存
@@ -20,7 +21,13 @@ const API = (function () {
     try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; }
   }
   function writeLS(k, v) {
-    try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn('本地存储失败', e); }
+    try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+    catch (e) {
+      console.warn('本地存储失败', e);
+      /* 只有本地预览会走到这儿：浏览器给的额度很小，塞不下太多照片。
+         线上是数据库，不会遇到。 */
+      throw new Error('浏览器本地存不下了，先删掉几条，或者等上线后用');
+    }
   }
 
   async function probe() {
@@ -116,6 +123,56 @@ const API = (function () {
     return true;
   }
 
+  /* ---------- 一起做清单 ---------- */
+  const sortTodos = (a) =>
+    a.slice().sort((x, y) => {
+      if (!!x.done !== !!y.done) return x.done ? 1 : -1;
+      return String(y.created_at).localeCompare(String(x.created_at));
+    });
+
+  async function listTodos() {
+    if (await probe() === 'remote') {
+      const j = await req('/api/todos');
+      return (j && j.items) || [];
+    }
+    return sortTodos(readLS(K_TODO, []));
+  }
+
+  async function addTodo(data) {
+    if (await probe() === 'remote') {
+      const j = await req('/api/todos', { method: 'POST', body: JSON.stringify(data) });
+      return j.item;
+    }
+    const item = Object.assign({ id: uid(), done: 0, created_at: nowISO(), done_at: null }, data);
+    const arr = readLS(K_TODO, []);
+    arr.unshift(item);
+    writeLS(K_TODO, arr);
+    return item;
+  }
+
+  async function toggleTodo(id, done) {
+    if (await probe() === 'remote') {
+      const j = await req('/api/todos/' + id, { method: 'PATCH', body: JSON.stringify({ done }) });
+      return j.item;
+    }
+    const arr = readLS(K_TODO, []).map(x =>
+      String(x.id) === String(id)
+        ? Object.assign({}, x, { done: done ? 1 : 0, done_at: done ? nowISO() : null })
+        : x
+    );
+    writeLS(K_TODO, arr);
+    return arr.find(x => String(x.id) === String(id));
+  }
+
+  async function delTodo(id) {
+    if (await probe() === 'remote') {
+      await req('/api/todos/' + id, { method: 'DELETE' });
+      return true;
+    }
+    writeLS(K_TODO, readLS(K_TODO, []).filter(x => String(x.id) !== String(id)));
+    return true;
+  }
+
   /* ---------- 口令校验（本地预览时用 config 里的答案比对） ---------- */
   async function verifyKey(k) {
     if (await probe() === 'remote') {
@@ -149,6 +206,7 @@ const API = (function () {
   return {
     probe, getKey, setKey, clearKey, hasKey, verifyKey, checkStoredKey,
     listMemories, addMemory, delMemory,
-    listMessages, addMessage, delMessage
+    listMessages, addMessage, delMessage,
+    listTodos, addTodo, toggleTodo, delTodo
   };
 })();

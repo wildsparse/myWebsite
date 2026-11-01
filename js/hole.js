@@ -53,9 +53,10 @@ const Hole = (function () {
     return new Promise((resolve) => {
       keyResolver = resolve;
       $('keyTitle').textContent = HOLE.keyPrompt;
-      $('keySub').textContent = HOLE.keyHint;
+      $('keySub').textContent = '（' + HOLE.keyHint + '）';
       $('keyErr').textContent = '';
       $('keyInput').value = '';
+      $('keyInput').placeholder = '答案';
       openModal('keyMask');
       setTimeout(() => $('keyInput').focus(), 300);
     });

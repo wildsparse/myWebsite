@@ -2,17 +2,23 @@
    公共工具：口令校验 + JSON 响应
    ============================================================ */
 
-/* 默认口令。
-   强烈建议：在 Cloudflare Pages 后台设置环境变量 TREE_KEY，把这里留作兜底。
-   也可以直接改下面这一行，然后重新部署。 */
-export const DEFAULT_KEY = 'laile';
+/* 默认答案（线上请用环境变量 TREE_KEY 覆盖它）。
+   比对时忽略大小写和首尾空格，所以 "ZouZou" 也能过。 */
+export const DEFAULT_KEY = 'zouzou';
+
+const norm = (s) => String(s == null ? '' : s).trim().toLowerCase();
 
 export function getKey(env) {
-  return (env && env.TREE_KEY) || DEFAULT_KEY;
+  return norm((env && env.TREE_KEY) || DEFAULT_KEY);
 }
 
 export function authorized(request, env) {
-  const k = request.headers.get('x-tree-key') || '';
+  const k = norm(request.headers.get('x-tree-key'));
+  return !!k && k === getKey(env);
+}
+
+export function checkKey(key, env) {
+  const k = norm(key);
   return !!k && k === getKey(env);
 }
 

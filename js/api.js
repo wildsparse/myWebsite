@@ -116,7 +116,7 @@ const API = (function () {
     return true;
   }
 
-  /* ---------- 口令校验（本地模式下本地比对） ---------- */
+  /* ---------- 口令校验（本地预览时用 config 里的答案比对） ---------- */
   async function verifyKey(k) {
     if (await probe() === 'remote') {
       const r = await fetch('/api/verify', {
@@ -126,7 +126,9 @@ const API = (function () {
       });
       return r.ok;
     }
-    return k.trim().length > 0;
+    const expected = String((typeof HOLE !== 'undefined' && HOLE.localKey) || '').trim().toLowerCase();
+    if (!expected) return true;
+    return k.trim().toLowerCase() === expected;
   }
 
   return {

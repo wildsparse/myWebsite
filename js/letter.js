@@ -1,124 +1,207 @@
 /* ============================================================
    letter.js —— 第一幕：那封信
-   打字机 + 音频 + 节奏
+   两种节奏：
+     有音频 → 文字跟着音频进度走（暂停即停，拖回去也跟着退）
+     没音频 → 按打字机速度慢慢出字
    ============================================================ */
 
 const Letter = (function () {
 
   const $ = (id) => document.getElementById(id);
 
-  let aborted = false;      // 用户点了"显示全文"
+  let aborted = false;
   let finished = false;
   let started = false;
+
+  let blocks = [];          // { el, text, start, typed }
+  let flat = '';            // 全文拼接，用来判断标点
+  let total = 0;
+
+  let mode = null;          // 'audio' | 'auto'
+  let timer = null;
+  let rafId = null;
+
   let audio = null;
   let audioReady = false;
-  let onFinishCb = null;
 
-  /* ---------- 打字节奏 ---------- */
+  /* ---------- 节奏 ---------- */
   const SPEED = {
-    char: 32,
-    comma: 150,      // ，、；：
-    stop: 380,       // 。！？
-    ellipsis: 280,   // ……
-    lineGap: 210,
-    paraGap: 620
+    char: 60,          // 每个字的间隔
+    comma: 240,        // ，、；：
+    stop: 560,         // 。！？
+    ellipsis: 420,     // ……
+    paraGap: 900       // 段落之间额外停一下
   };
 
-  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  const CHAR_COMMA = '，、；：';
+  const CHAR_STOP = '。！？';
+  const CHAR_ELLIP = '…—';
 
-  function delayFor(ch) {
-    if ('，、；：'.includes(ch)) return SPEED.comma;
-    if ('。！？'.includes(ch)) return SPEED.stop;
-    if (ch === '…' || ch === '—') return SPEED.ellipsis;
-    return SPEED.char;
+  /* ---------- 结构 ---------- */
+  function build() {
+    const headEl = $('letterHeading');
+    const bodyEl = $('letterBody');
+    const closingEl = $('letterClosing');
+    const signEl = $('letterSign');
+
+    [headEl, bodyEl, closingEl, signEl].forEach(n => { n.innerHTML = ''; });
+    blocks = [];
+    total = 0;
+
+    const add = (el, text) => {
+      el.textContent = '';
+      blocks.push({ el, text, start: total, typed: -1 });
+      total += text.length;
+    };
+
+    LETTER.heading.forEach(t => {
+      const ln = document.createElement('div');
+      ln.className = 'ln';
+      headEl.appendChild(ln);
+      add(ln, t);
+    });
+
+    LETTER.paras.forEach(para => {
+      const p = document.createElement('p');
+      p.className = 'letter-p';
+      bodyEl.appendChild(p);
+      add(p, para.join(''));
+    });
+
+    LETTER.closing.forEach(t => {
+      const ln = document.createElement('div');
+      ln.className = 'ln';
+      closingEl.appendChild(ln);
+      add(ln, t);
+    });
+
+    const s1 = document.createElement('div');
+    signEl.appendChild(s1);
+    add(s1, '—— ' + LETTER.sign);
+
+    const s2 = document.createElement('div');
+    s2.className = 'sign-date';
+    s2.textContent = LETTER.signDate;
+    s2.style.opacity = '0';
+    s2.style.transition = 'opacity 1.6s ease';
+    signEl.appendChild(s2);
+
+    flat = blocks.map(b => b.text).join('');
+  }
+
+  /* ---------- 揭示到第 T 个字 ---------- */
+  function reveal(T) {
+    let changed = false;
+    for (const b of blocks) {
+      const need = Math.max(0, Math.min(b.text.length, T - b.start));
+      if (need !== b.typed) {
+        b.el.textContent = b.text.slice(0, need);
+        b.typed = need;
+        changed = true;
+      }
+    }
+    if (changed) {
+      for (const b of blocks) {
+        const mid = b.typed > 0 && b.typed < b.text.length;
+        b.el.classList.toggle('is-typing', mid);
+      }
+      follow();
+    }
+  }
+
+  function revealAll() {
+    reveal(total);
+    const date = document.querySelector('.sign-date');
+    if (date) date.style.opacity = '.7';
   }
 
   function follow() {
     const box = $('letterScroll');
     if (!box) return;
-    const near = box.scrollHeight - box.scrollTop - box.clientHeight < 260;
+    const near = box.scrollHeight - box.scrollTop - box.clientHeight < 300;
     if (near) box.scrollTop = box.scrollHeight;
   }
 
-  async function typeInto(el, text) {
-    el.classList.add('is-typing');
-    for (let i = 0; i < text.length; i++) {
-      if (aborted) { el.textContent = text; break; }
-      el.textContent += text[i];
-      follow();
-      await wait(delayFor(text[i]));
+  /* ---------- 逐字节奏 ---------- */
+  function blockAt(T) {
+    for (const b of blocks) {
+      if (T <= b.start + b.text.length) return b;
     }
-    el.classList.remove('is-typing');
+    return blocks[blocks.length - 1];
   }
 
-  /* ---------- 结构渲染 ---------- */
-  function makeLine(container, cls) {
-    const div = document.createElement('div');
-    div.className = 'ln';
-    container.appendChild(div);
-    return div;
+  function delayAt(T) {
+    const ch = flat[T - 1] || '';
+    let d = SPEED.char;
+    if (CHAR_COMMA.includes(ch)) d = SPEED.comma;
+    else if (CHAR_STOP.includes(ch)) d = SPEED.stop;
+    else if (CHAR_ELLIP.includes(ch)) d = SPEED.ellipsis;
+
+    const b = blockAt(T);
+    if (b && T === b.start + b.text.length) d += SPEED.paraGap;
+    return d;
   }
 
-  async function run() {
-    const headEl = $('letterHeading');
-    const bodyEl = $('letterBody');
-
-    /* 抬头大字 */
-    for (const line of LETTER.heading) {
-      const ln = makeLine(headEl);
-      await typeInto(ln, line);
-      await wait(420);
-    }
-    await wait(900);
-
-    /* 正文 */
-    for (const para of LETTER.paras) {
-      const p = document.createElement('p');
-      p.className = 'letter-p';
-      bodyEl.appendChild(p);
-      await typeInto(p, para.join(''));
-      if (!aborted) await wait(SPEED.paraGap);
-    }
-
-    /* 结尾 */
-    await wait(600);
-    const closingEl = $('letterClosing');
-    for (const line of LETTER.closing) {
-      const ln = makeLine(closingEl);
-      await typeInto(ln, line);
-      if (!aborted) await wait(520);
-    }
-
-    /* 落款 */
-    await wait(700);
-    const signEl = $('letterSign');
-    signEl.innerHTML = '';
-    const s1 = document.createElement('div');
-    signEl.appendChild(s1);
-    await typeInto(s1, '—— ' + LETTER.sign);
-
-    const s2 = document.createElement('div');
-    s2.style.cssText = 'font-size:.82em;opacity:0;margin-top:.5rem;transition:opacity 1.4s ease';
-    s2.textContent = LETTER.signDate;
-    signEl.appendChild(s2);
-    requestAnimationFrame(() => { s2.style.opacity = '.7'; });
-    await wait(900);
-
-    finish();
+  /* ---------- 模式一：自己走 ---------- */
+  function startAuto() {
+    mode = 'auto';
+    let T = 0;
+    const tick = () => {
+      if (finished) return;
+      if (aborted) { revealAll(); finish(); return; }
+      if (T >= total) { revealAll(); finish(); return; }
+      T++;
+      reveal(T);
+      timer = setTimeout(tick, delayAt(T));
+    };
+    tick();
   }
 
+  /* ---------- 模式二：跟着音频 ---------- */
+  function startAudioSync() {
+    mode = 'audio';
+    const step = () => {
+      if (finished) return;
+      if (aborted) { revealAll(); finish(); return; }
+
+      const dur = audio.duration;
+      if (dur && isFinite(dur) && dur > 0) {
+        const p = Math.min(1, audio.currentTime / dur);
+        reveal(Math.floor(p * total));
+      }
+
+      if (audio.ended) { revealAll(); finish(); return; }
+      rafId = requestAnimationFrame(step);
+    };
+    rafId = requestAnimationFrame(step);
+  }
+
+  function stopLoops() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  /* ---------- 收尾 ---------- */
   function finish() {
     if (finished) return;
     finished = true;
+    stopLoops();
+
     $('skipBtn').style.display = 'none';
     const nx = $('toIntro');
     if (nx) nx.hidden = false;
 
-    // 收尾时把视线带到落款
     const box = $('letterScroll');
     if (box) setTimeout(() => box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }), 260);
+  }
 
-    if (onFinishCb) onFinishCb();
+  function skip() {
+    if (finished) return;
+    aborted = true;
+    stopLoops();
+    revealAll();
+    $('skipBtn').textContent = '已全部展开';
+    setTimeout(finish, 320);
   }
 
   /* ---------- 音频 ---------- */
@@ -126,30 +209,30 @@ const Letter = (function () {
     audio = new Audio();
     audio.src = AUDIO.src;
     audio.preload = 'metadata';
-    audio.loop = false;
 
     const btn = $('audioBtn');
     const label = $('audioLabel');
     if (label) label.textContent = AUDIO.label;
 
-    audio.addEventListener('canplaythrough', () => { audioReady = true; }, { once: true });
-    audio.addEventListener('loadedmetadata', () => { audioReady = true; }, { once: true });
+    const markReady = () => { audioReady = true; };
+    audio.addEventListener('loadedmetadata', markReady, { once: true });
+    audio.addEventListener('canplaythrough', markReady, { once: true });
 
     audio.addEventListener('error', () => {
       audioReady = false;
-      btn.style.display = 'none';      // 没放音频就不显示播放器，不打扰
+      btn.style.display = 'none';
     });
 
     audio.addEventListener('ended', () => btn.classList.remove('is-playing'));
+    audio.addEventListener('pause', () => btn.classList.remove('is-playing'));
+    audio.addEventListener('play', () => btn.classList.add('is-playing'));
 
     btn.addEventListener('click', async () => {
       if (!audioReady) { toast('音频还没放进来'); return; }
       if (audio.paused) {
-        try { await audio.play(); btn.classList.add('is-playing'); }
-        catch { toast('播放被挡住了，再点一次'); }
+        try { await audio.play(); } catch { toast('播放被挡住了，再点一次'); }
       } else {
         audio.pause();
-        btn.classList.remove('is-playing');
       }
     });
   }
@@ -164,7 +247,7 @@ const Letter = (function () {
   }
 
   /* ---------- 开场 ---------- */
-  function begin() {
+  async function begin() {
     if (started) return;
     started = true;
 
@@ -172,24 +255,21 @@ const Letter = (function () {
     $('letterInner').classList.add('is-visible');
     $('letterBar').classList.add('is-on');
 
-    // 有音频就跟着一起开始（用户手势触发的，不会被拦）
+    build();
+
     if (audio && audioReady) {
-      audio.play().then(() => $('audioBtn').classList.add('is-playing')).catch(() => { });
+      try {
+        await audio.play();
+        startAudioSync();
+        return;
+      } catch {
+        // 自动播放被挡，退回自己走
+      }
     }
-
-    setTimeout(run, 900);
+    startAuto();
   }
 
-  function skip() {
-    if (finished) return;
-    aborted = true;
-    $('skipBtn').textContent = '已全部展开';
-    setTimeout(finish, 300);
-  }
-
-  function init(onFinish) {
-    onFinishCb = onFinish;
-
+  function init() {
     $('overtureTo').textContent = LETTER.to;
     initAudio();
 
@@ -199,14 +279,11 @@ const Letter = (function () {
     });
     $('skipBtn').addEventListener('click', skip);
 
-    // 空格 / 回车也能开始、跳过
     document.addEventListener('keydown', (e) => {
       if (!started && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); begin(); }
       else if (started && !finished && e.key === 'Escape') skip();
     });
-
-    return { begin, skip };
   }
 
-  return { init, begin };
+  return { init, begin, skip };
 })();

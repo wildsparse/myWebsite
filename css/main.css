@@ -176,6 +176,11 @@ input, textarea { font: inherit; color: inherit; }
 .letter-closing .ln { display: block; margin-bottom: 1.15rem; }
 .letter-closing .ln:last-child { margin-bottom: 0; }
 
+.letter-sign .sign-date {
+  font-size: .82em;
+  margin-top: .5rem;
+}
+
 .letter-sign {
   margin-top: 4.2rem;
   text-align: right;
@@ -271,6 +276,35 @@ input, textarea { font: inherit; color: inherit; }
 }
 .skip-btn:hover { color: var(--ink-2); }
 
+.btn-ghost {
+  position: relative;
+  display: inline-block;
+  padding: .85rem 2.2rem;
+  font-size: .82rem;
+  letter-spacing: .26em;
+  text-indent: .26em;
+  color: var(--amber-hi);
+  border: 1px solid rgba(214, 178, 134, .34);
+  border-radius: 100px;
+  background: rgba(217, 180, 137, .035);
+  overflow: hidden;
+  transition: border-color .5s, color .5s, background .5s;
+}
+.btn-ghost::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 130%, rgba(217,180,137,.20), transparent 72%);
+  opacity: 0;
+  transition: opacity .6s;
+}
+.btn-ghost:hover {
+  border-color: rgba(217, 180, 137, .6);
+  color: #fff;
+  background: rgba(217, 180, 137, .07);
+}
+.btn-ghost:hover::before { opacity: 1; }
+
 /* 下一步（在控制条里） */
 .btn-ghost.btn-next {
   padding: .62rem 1.9rem;
@@ -293,6 +327,7 @@ input, textarea { font: inherit; color: inherit; }
 }
 .intro-box {
   max-width: 560px;
+  margin: auto;
   text-align: center;
 }
 .intro-kicker {
@@ -319,13 +354,15 @@ input, textarea { font: inherit; color: inherit; }
   margin: 1.8rem auto 0;
   background: linear-gradient(90deg, transparent, var(--amber-dim), transparent);
 }
+.intro-lines { text-align: left; margin-top: 2.2rem; }
 .intro-lines p {
   font-family: var(--font-serif);
-  font-size: 1rem;
-  line-height: 2.2;
-  color: var(--ink-2);
+  font-size: clamp(.96rem, 2.4vw, 1.02rem);
+  line-height: 2.15;
+  text-align: left;
+  color: #bdb0a0;
   letter-spacing: .04em;
-  margin-bottom: 1.1rem;
+  margin-bottom: 1.05rem;
   text-wrap: pretty;
   opacity: 0;
   transform: translateY(10px);
@@ -685,9 +722,9 @@ input, textarea { font: inherit; color: inherit; }
   margin-bottom: .4rem;
 }
 .modal-sub {
-  font-size: .76rem;
-  letter-spacing: .08em;
-  color: var(--ink-3);
+  font-size: .78rem;
+  letter-spacing: .1em;
+  color: var(--ink-2);
   line-height: 1.9;
   margin-bottom: 1.3rem;
 }

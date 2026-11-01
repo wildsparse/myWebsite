@@ -84,10 +84,9 @@ const Hole = (function () {
   }
 
   async function ensureKey() {
-    if (API.hasKey()) {
-      // 已经有口令，但可能失效，交给后续请求去判定
-      return true;
-    }
+    // 记住的口令要重新核一遍：本地预览时和 config 里的答案比，
+    // 线上则信任它（真的过期了，写入时会拿到 401 再补问）
+    if (await API.checkStoredKey()) return true;
     return askKey();
   }
 

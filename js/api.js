@@ -131,8 +131,23 @@ const API = (function () {
     return k.trim().toLowerCase() === expected;
   }
 
+  /* 浏览器里记住的口令还算不算数。
+     本地预览时和 localKey 比对，避免旧口令一直放行、看不到弹窗。 */
+  async function checkStoredKey() {
+    const k = getKey();
+    if (!k) return false;
+    if (await probe() === 'remote') return true;
+    const expected = String((typeof HOLE !== 'undefined' && HOLE.localKey) || '').trim().toLowerCase();
+    if (!expected) return true;
+    if (k.trim().toLowerCase() !== expected) {
+      clearKey();
+      return false;
+    }
+    return true;
+  }
+
   return {
-    probe, getKey, setKey, clearKey, hasKey, verifyKey,
+    probe, getKey, setKey, clearKey, hasKey, verifyKey, checkStoredKey,
     listMemories, addMemory, delMemory,
     listMessages, addMessage, delMessage
   };

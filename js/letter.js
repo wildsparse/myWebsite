@@ -363,7 +363,12 @@ const Letter = (function () {
         if (mode !== 'audio') {
           const T = shownChars();
           if (T > 0) {
-            try { audio.currentTime = timeAt(T); } catch (_) {}
+            const ok = await seekTo(timeAt(T));
+            if (!ok) {
+              // 跳不过去：声音回开头，字也跟着回到开头
+              try { audio.currentTime = 0; } catch (_) {}
+              reveal(0);
+            }
           }
         }
         try {
@@ -409,6 +414,23 @@ const Letter = (function () {
       // 同步发起，保住浏览器的自动播放许可
       const p = audio.play();
       if (p && p.catch) p.catch(() => finishWait(false));
+    });
+  }
+
+  /* 有的 CDN 不给音频分段，进度条跳不过去（seekable 只有 0）。
+     跳不动就干脆退回开头，总比声音在 A 处、字停在 B 处强。 */
+  function seekTo(t) {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        audio.removeEventListener('seeked', finish);
+        resolve(Math.abs(audio.currentTime - t) < 1.5);
+      };
+      audio.addEventListener('seeked', finish);
+      try { audio.currentTime = t; } catch (_) { finish(); return; }
+      setTimeout(finish, 700);
     });
   }
 

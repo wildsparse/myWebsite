@@ -1292,6 +1292,12 @@ input, textarea { font: inherit; color: inherit; }
   .msg-thumb { width: 74px; height: 74px; }
   .tab { padding: .45rem .5rem; font-size: .76rem; }
   .view-switch button { padding: .28rem .66rem; font-size: .68rem; }
+
+  /* 竖屏看一条回忆：图别占满，标题和日期也得露出来 */
+  .lightbox { padding: 2vh 4vw calc(2vh + env(safe-area-inset-bottom)); }
+  .lightbox img { max-height: 60vh; }
+  .lb-box { gap: 1rem; max-height: 96vh; }
+  .lb-cap { max-height: 32vh; }
 }
 
 @media (prefers-reduced-motion: reduce) {

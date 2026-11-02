@@ -1282,6 +1282,9 @@ input, textarea { font: inherit; color: inherit; }
   letter-spacing: .16em;
   color: var(--amber-dim);
   cursor: pointer;
+  /* 窄屏上会被挤成「随便看／看」两行，这里钉住 */
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: color .35s;
 }
 @media (hover: hover) {

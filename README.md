@@ -100,7 +100,9 @@ ffmpeg -i 录音.m4a -ac 1 -ar 44100 -c:a libmp3lame -b:a 96k letter.mp3
 
 ## 五、已经建过库了，后来升级
 
-网站加了新功能（留言带照片、一起做清单），数据库要补一次。
+网站加了新功能，数据库要补。
+
+**第二步升级（留言带照片、一起做清单）**
 
 1. 打开 <https://dash.cloudflare.com> → **存储和数据库** → **D1** → 你的库。
 2. 点 **控制台 / Console**。
@@ -108,7 +110,11 @@ ffmpeg -i 录音.m4a -ac 1 -ar 44100 -c:a libmp3lame -b:a 96k letter.mp3
 
 如果提示 `duplicate column name: photos`，说明照片那一列已经加过了，忽略这一句就行，后面的建表仍然要执行。
 
-> 代码里做了兼容：没跑迁移时，留言照样能看能写，只是没法带图，清单页会是空的。跑完立刻生效，不用重新部署。
+**第三步升级（评论）**
+
+同样在控制台里，把 `migrations/003-comments.sql` 的内容粘进去执行一次。
+
+> 代码里做了兼容：没跑迁移时，留言照样能看能写，只是没法带图，清单页会是空的，评论也写不了（但页面不会坏）。跑完立刻生效，不用重新部署。
 
 ## 六、本地看效果
 
@@ -150,7 +156,7 @@ js/letter.js            打字机、音频、节奏
 js/hole.js              三块内容的增删、图片压缩、两种视图
 js/api.js               和后端说话（没后端时自动降级到本地存储）
 js/app.js               把三幕串起来
-functions/api/          后端的接口：memories / messages / todos / verify
+functions/api/          后端的接口：memories / messages / todos / comments / verify
 functions/_lib/auth.js  口令校验、默认口令
 schema.sql              建表（新库用这个）
 migrations/             给已有的库补字段用

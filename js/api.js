@@ -9,6 +9,7 @@ const API = (function () {
   const K_MEM = 'th.local.memories';
   const K_MSG = 'th.local.messages';
   const K_TODO = 'th.local.todos';
+  const K_CMT = 'th.local.comments';
 
   let mode = null;          // 'remote' | 'local'
   let memCache = [];        // 本地模式下的缓存
@@ -173,6 +174,56 @@ const API = (function () {
     return true;
   }
 
+  /* ---------- 评论 ---------- */
+  /* 一次把所有目标下的评论条数拿回来，列表上就能显示「3 条评论」，
+     不用为每条回忆发一次请求。 */
+  async function listCommentCounts() {
+    if (await probe() === 'remote') {
+      const j = await req('/api/comments?counts=1');
+      return (j && j.counts) || {};
+    }
+    const map = {};
+    readLS(K_CMT, []).forEach((c) => {
+      const k = c.target_type + ':' + c.target_id;
+      map[k] = (map[k] || 0) + 1;
+    });
+    return map;
+  }
+
+  async function listComments(type, id) {
+    if (await probe() === 'remote') {
+      const j = await req('/api/comments?type=' + encodeURIComponent(type) +
+                          '&id=' + encodeURIComponent(id));
+      return (j && j.items) || [];
+    }
+    return readLS(K_CMT, []).filter(c =>
+      c.target_type === type && String(c.target_id) === String(id)
+    );
+  }
+
+  async function addComment(data) {
+    if (await probe() === 'remote') {
+      const j = await req('/api/comments', { method: 'POST', body: JSON.stringify(data) });
+      return j.item;
+    }
+    const item = Object.assign({ id: uid(), created_at: nowISO() }, data, {
+      target_id: String(data.target_id)
+    });
+    const arr = readLS(K_CMT, []);
+    arr.push(item);
+    writeLS(K_CMT, arr);
+    return item;
+  }
+
+  async function delComment(id) {
+    if (await probe() === 'remote') {
+      await req('/api/comments/' + id, { method: 'DELETE' });
+      return true;
+    }
+    writeLS(K_CMT, readLS(K_CMT, []).filter(x => String(x.id) !== String(id)));
+    return true;
+  }
+
   /* ---------- 口令校验（本地预览时用 config 里的答案比对） ---------- */
   async function verifyKey(k) {
     if (await probe() === 'remote') {
@@ -207,6 +258,7 @@ const API = (function () {
     probe, getKey, setKey, clearKey, hasKey, verifyKey, checkStoredKey,
     listMemories, addMemory, delMemory,
     listMessages, addMessage, delMessage,
-    listTodos, addTodo, toggleTodo, delTodo
+    listTodos, addTodo, toggleTodo, delTodo,
+    listCommentCounts, listComments, addComment, delComment
   };
 })();

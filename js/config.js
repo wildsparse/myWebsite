@@ -189,5 +189,15 @@ const HOLE = {
   localKey: 'zouzou',
 
   // 作者名候选
-  authors: ['莹莹', '乐乐']
+  authors: ['莹莹', '乐乐'],
+
+  // 评论
+  commentNone: '评论',                 // 一条都没有时显示这个词
+  commentWord: '条评论',               // 有评论时：3 条评论
+  commentEmpty: '还没人说话。',
+  commentPlaceholder: '说一句……',
+  commentSend: '发出',
+  commentTimeJustNow: '刚刚',
+  commentTimeMinutes: '分钟前',
+  commentTimeHours: '小时前'
 };

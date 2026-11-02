@@ -89,13 +89,151 @@ const Hole = (function () {
   function openModal(id) { $(id).classList.add('is-on'); }
   function closeModal(id) { $(id).classList.remove('is-on'); }
 
+  /* ---------- 评论 ---------- */
+  let commentCounts = {};              // 'memory:5' → 3
+  let cmtAuthor = HOLE.authors[0];
+
+  const cmtKey = (type, id) => type + ':' + String(id);
+  const cmtN = (type, id) => commentCounts[cmtKey(type, id)] || 0;
+
+  /* 「3 条评论」这个小标签，卡片上、浮层里都用它 */
+  function countTag(type, id) {
+    const n = cmtN(type, id);
+    const s = el('span', 'cmt-count' + (n ? ' has' : ''), n ? n + ' ' + HOLE.commentWord : HOLE.commentNone);
+    s.dataset.type = type;
+    s.dataset.id = String(id);
+    return s;
+  }
+
+  /* 发完 / 删完把页面上所有标签改一遍，不用重画整个列表 */
+  function refreshCounts() {
+    document.querySelectorAll('.cmt-count').forEach((s) => {
+      const n = cmtN(s.dataset.type, s.dataset.id);
+      s.textContent = n ? n + ' ' + HOLE.commentWord : HOLE.commentNone;
+      s.classList.toggle('has', n > 0);
+    });
+  }
+
+  /* 刚发的写「刚刚」，久一点的写日期 */
+  function fmtWhen(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const now = new Date();
+    const sec = Math.floor((now - d) / 1000);
+    if (sec < 60) return HOLE.commentTimeJustNow;
+    if (sec < 3600) return Math.floor(sec / 60) + ' ' + HOLE.commentTimeMinutes;
+    if (sec < 86400) return Math.floor(sec / 3600) + ' ' + HOLE.commentTimeHours;
+    const p = (n) => String(n).padStart(2, '0');
+    const head = d.getFullYear() === now.getFullYear() ? '' : d.getFullYear() + '.';
+    return head + p(d.getMonth() + 1) + '.' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function commentRow(c, onDel) {
+    const item = el('div', 'cmt-item');
+    const head = el('div', 'cmt-head');
+    head.appendChild(el('span', 'cmt-author', c.author || '匿名'));
+    head.appendChild(el('span', 'cmt-time', fmtWhen(c.created_at)));
+
+    const del = el('button', 'cmt-del', '×');
+    del.type = 'button';
+    del.title = '删掉这条评论';
+    del.addEventListener('click', () => onDel(c));
+    head.appendChild(del);
+
+    item.append(head, el('div', 'cmt-text', c.text));
+    return item;
+  }
+
+  /* 一条回忆 / 一条留言下面的评论区：几行评论 + 写一句的地方 */
+  function commentBox(type, id) {
+    const box = el('div', 'cmt-box');
+    const list = el('div', 'cmt-list');
+    const form = el('div', 'cmt-form');
+    const chips = el('div', 'cmt-chips');
+
+    const input = document.createElement('input');
+    input.className = 'cmt-input';
+    input.type = 'text';
+    input.maxLength = 200;
+    input.placeholder = HOLE.commentPlaceholder;
+
+    const send = el('button', 'cmt-send', HOLE.commentSend);
+    send.type = 'button';
+
+    buildChips(chips, HOLE.authors, (n) => { cmtAuthor = n; }, cmtAuthor);
+    form.append(chips, input, send);
+
+    let items = [];
+
+    function paint() {
+      list.innerHTML = '';
+      if (!items.length) {
+        list.appendChild(el('div', 'cmt-empty', HOLE.commentEmpty));
+        return;
+      }
+      items.forEach((c) => list.appendChild(commentRow(c, remove)));
+      list.scrollTop = list.scrollHeight;
+    }
+
+    async function remove(c) {
+      if (!confirm('删掉这条评论？')) return;
+      if (!API.hasKey()) { const ok = await ensureKey(); if (!ok) return; }
+      try {
+        await API.delComment(c.id);
+        items = items.filter((x) => String(x.id) !== String(c.id));
+        commentCounts[cmtKey(type, id)] = Math.max(0, cmtN(type, id) - 1);
+        paint();
+        refreshCounts();
+      } catch (e) {
+        toast(e.message === 'KEY' ? HOLE.keyWrong : '没删掉，等下再试');
+      }
+    }
+
+    async function submit() {
+      const text = input.value.trim();
+      if (!text) { input.focus(); return; }
+      if (!API.hasKey()) { const ok = await ensureKey(); if (!ok) return; }
+
+      send.disabled = true;
+      try {
+        const item = await API.addComment({
+          target_type: type,
+          target_id: String(id),
+          author: cmtAuthor,
+          text: text
+        });
+        items.push(item);
+        input.value = '';
+        paint();
+        commentCounts[cmtKey(type, id)] = cmtN(type, id) + 1;
+        refreshCounts();
+      } catch (e) {
+        toast(e.message === 'KEY' ? HOLE.keyWrong : '没发出去，等下再试');
+      }
+      send.disabled = false;
+    }
+
+    send.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    });
+
+    box.append(list, form);
+
+    API.listComments(type, id)
+      .then((rows) => { items = rows || []; paint(); })
+      .catch(() => paint());
+
+    return box;
+  }
+
   /* ---------- 看大图 ---------- */
   let lbOpenedAt = 0;
-
   function openLightbox(src) {
     $('lightboxImg').src = src;
     $('lightboxImg').hidden = false;
     $('lightboxCap').innerHTML = '';
+    $('lightboxCmt').innerHTML = '';
     lbOpenedAt = Date.now();
     $('lightbox').classList.add('is-on');
   }
@@ -122,6 +260,12 @@ const Hole = (function () {
     if (m.happened_at) meta.appendChild(el('span', null, fmtDate(m.happened_at)));
     if (meta.childNodes.length) cap.appendChild(meta);
 
+    /* 评论跟在下面，看得见才算数 */
+    const cmt = $('lightboxCmt');
+    cmt.innerHTML = '';
+    cmt.appendChild(el('div', 'cmt-heading', HOLE.commentNone));
+    cmt.appendChild(commentBox('memory', m.id));
+
     lbOpenedAt = Date.now();
     $('lightbox').classList.add('is-on');
   }
@@ -134,6 +278,7 @@ const Hole = (function () {
       if ($('lightbox').classList.contains('is-on')) return;
       $('lightboxImg').removeAttribute('src');
       $('lightboxCap').innerHTML = '';
+      $('lightboxCmt').innerHTML = '';
     }, 300);
   }
 
@@ -206,6 +351,8 @@ const Hole = (function () {
     memItems.forEach((m, i) => {
       const card = el('article', 'mem-card');
       card.style.animationDelay = Math.min(i * 60, 600) + 'ms';
+      /* 整张卡片都能点开：图、字、评论一起看 */
+      onTap(card, () => openMemory(m), 'button');
 
       const photo = el('div', 'mem-photo');
       if (m.photo) {
@@ -214,7 +361,6 @@ const Hole = (function () {
         img.alt = m.title || '回忆';
         img.loading = 'lazy';
         photo.appendChild(img);
-        onTap(photo, () => openLightbox(m.photo));
       } else {
         photo.classList.add('is-empty');
       }
@@ -227,6 +373,7 @@ const Hole = (function () {
       if (m.author) meta.appendChild(el('span', null, m.author));
       if (m.author && m.happened_at) meta.appendChild(el('i', 'dot'));
       if (m.happened_at) meta.appendChild(el('span', null, fmtDate(m.happened_at)));
+      meta.appendChild(countTag('memory', m.id));
 
       if (meta.childNodes.length) text.appendChild(meta);
 
@@ -304,6 +451,7 @@ const Hole = (function () {
       if (m.note) body.appendChild(el('div', 'tl-note', m.note));
       const meta = el('div', 'tl-meta');
       if (m.author) meta.appendChild(el('span', null, m.author));
+      meta.appendChild(countTag('memory', m.id));
       if (meta.childNodes.length) body.appendChild(meta);
       card.appendChild(body);
 
@@ -374,7 +522,24 @@ const Hole = (function () {
         card.appendChild(strip);
       }
 
+      const foot = el('div', 'msg-foot');
+      foot.appendChild(countTag('message', m.id));
+      card.appendChild(foot);
+
       card.appendChild(del);
+
+      /* 点开才看见评论，再点收起 */
+      onTap(card, () => {
+        const open = card.querySelector('.cmt-box');
+        if (open) {
+          open.remove();
+          card.classList.remove('is-open');
+          return;
+        }
+        card.classList.add('is-open');
+        card.appendChild(commentBox('message', m.id));
+      }, '.cmt-box, button, input, a');
+
       list.appendChild(card);
     });
   }
@@ -739,6 +904,10 @@ const Hole = (function () {
       memItems = mems;
       msgItems = msgs;
       todoItems = todos;
+
+      /* 评论条数单独拉一次，拿不到也不影响页面 */
+      try { commentCounts = await API.listCommentCounts(); } catch { commentCounts = {}; }
+
       renderMemPane();
       renderMessages();
       renderTodos();
@@ -855,8 +1024,10 @@ const Hole = (function () {
       if (e.key === 'Enter') submitKey();
     });
 
-    /* 看大图 */
-    $('lightbox').addEventListener('click', closeLightbox);
+    /* 看大图：只有点外面的黑边才关，点图片、点输入框都不关 */
+    $('lightbox').addEventListener('click', (e) => {
+      if (e.target === $('lightbox')) closeLightbox();
+    });
 
     /* 关闭 */
     document.querySelectorAll('[data-close]').forEach(btn => {

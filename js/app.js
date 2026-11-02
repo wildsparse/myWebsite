@@ -75,11 +75,5 @@
       if (!holeReady) { holeReady = true; Hole.init(); }
     }
     if (q.get('fast')) window.__FAST__ = true;
-
-    /* 装到主屏：安卓要注册了 sw 才认这个站是「能装的应用」，
-       iOS 不认这套，靠 head 里那几个 apple- 的 meta。 */
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => { /* 存不上也不影响用 */ });
-    }
   });
 })();

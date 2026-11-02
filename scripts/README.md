@@ -37,17 +37,3 @@ python scripts/check.py              # 核对，看偏差中位数
 整段丢给 whisper 时，它会把开头那两句抬头（「生日快乐，任珈萱」）当成没用的东西吞掉。
 所以 `head.py` 单独把前 8 秒切出来再转一次，`align.py` 拿它的段边界直接钉在开头。
 如果哪天换了录音、开头变成别的句子，改 `align.py` 里的 `HEAD_BLOCKS` 就行。
-
----
-
-# 生成主屏图标
-
-改了主屏图标的颜色或半径之后跑一句：
-
-```
-python scripts/make-icons.py
-```
-
-不用装 Pillow，脚本只用标准库自己写 PNG。会覆盖 `icons/` 里那三张：
-`icon-512.png`（也当安卓的 maskable 用，内容都压在中间 80% 内）、
-`icon-192.png`、`apple-touch-icon.png`（180，iOS 会自己切圆角，所以铺满不留透明）。

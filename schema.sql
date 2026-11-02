@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS memories (
   note         TEXT,
   happened_at  TEXT,              -- YYYY-MM-DD
   author       TEXT,
+  crop         TEXT,              -- 卡片取景：{"x":0,"y":0,"w":1,"h":0.75}
   created_at   TEXT NOT NULL
 );
 

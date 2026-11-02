@@ -114,6 +114,12 @@ ffmpeg -i 录音.m4a -ac 1 -ar 44100 -c:a libmp3lame -b:a 96k letter.mp3
 
 同样在控制台里，把 `migrations/003-comments.sql` 的内容粘进去执行一次。
 
+**第四步升级（卡片取景）**
+
+把 `migrations/004-crop.sql` 的内容粘进去执行一次。只有一句 `ALTER TABLE ... ADD COLUMN`。
+
+如果提示 `duplicate column name: crop`，说明已经加过了，忽略即可。
+
 > 代码里做了兼容：没跑迁移时，留言照样能看能写，只是没法带图，清单页会是空的，评论也写不了（但页面不会坏）。跑完立刻生效，不用重新部署。
 
 ## 六、本地看效果

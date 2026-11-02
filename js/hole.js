@@ -58,11 +58,43 @@ const Hole = (function () {
   /* ---------- 看大图 ---------- */
   function openLightbox(src) {
     $('lightboxImg').src = src;
+    $('lightboxImg').hidden = false;
+    $('lightboxCap').innerHTML = '';
     $('lightbox').classList.add('is-on');
   }
+
+  /* 时间线上点开一条：图看大，说明看全 */
+  function openMemory(m) {
+    const img = $('lightboxImg');
+    if (m.photo) {
+      img.src = m.photo;
+      img.alt = m.title || '回忆';
+      img.hidden = false;
+    } else {
+      img.removeAttribute('src');
+      img.hidden = true;
+    }
+
+    const cap = $('lightboxCap');
+    cap.innerHTML = '';
+    if (m.title) cap.appendChild(el('div', 'lb-title', m.title));
+    if (m.note) cap.appendChild(el('div', 'lb-note', m.note));
+
+    const meta = el('div', 'lb-meta');
+    if (m.author) meta.appendChild(el('span', null, m.author));
+    if (m.happened_at) meta.appendChild(el('span', null, fmtDate(m.happened_at)));
+    if (meta.childNodes.length) cap.appendChild(meta);
+
+    $('lightbox').classList.add('is-on');
+  }
+
   function closeLightbox() {
     $('lightbox').classList.remove('is-on');
-    setTimeout(() => { if (!$('lightbox').classList.contains('is-on')) $('lightboxImg').removeAttribute('src'); }, 300);
+    setTimeout(() => {
+      if ($('lightbox').classList.contains('is-on')) return;
+      $('lightboxImg').removeAttribute('src');
+      $('lightboxCap').innerHTML = '';
+    }, 300);
   }
 
   /* ---------- 口令 ---------- */
@@ -210,6 +242,7 @@ const Hole = (function () {
       side.appendChild(el('i', 'tl-dot'));
 
       const card = el('div', 'tl-card');
+      card.addEventListener('click', () => openMemory(m));
 
       if (m.photo) {
         const thumb = el('div', 'tl-thumb');
@@ -217,7 +250,6 @@ const Hole = (function () {
         img.src = m.photo;
         img.alt = m.title || '回忆';
         img.loading = 'lazy';
-        img.addEventListener('click', () => openLightbox(m.photo));
         thumb.appendChild(img);
         card.appendChild(thumb);
       }

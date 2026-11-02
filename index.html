@@ -79,7 +79,10 @@
   <main class="hole-main">
     <div class="pane is-on" id="pane-memories">
       <div class="pane-bar">
-        <div class="pane-hint"><span id="hintMemories"></span></div>
+        <div class="pane-hint">
+          <button class="shuffle" id="shuffleBtn" type="button"></button>
+          <span id="hintMemories"></span>
+        </div>
         <div class="view-switch" id="viewSwitch">
           <button data-view="grid" class="is-on"></button>
           <button data-view="timeline"></button>
@@ -145,6 +148,7 @@
       <div class="drop" id="drop">
         <span>点击选一张<br>或者拖进来</span>
         <img id="dropPreview" alt="" hidden>
+        <button class="crop-pick" id="cropPickBtn" type="button" hidden>卡片显示哪块</button>
         <input type="file" id="fileInput" accept="image/*">
       </div>
     </div>
@@ -173,6 +177,25 @@
     <div class="modal-actions">
       <button class="btn-plain" data-close="memMask">先不放</button>
       <button class="btn-solid" id="memOk">放进去</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     弹窗：卡片取景（缩略图显示哪一块）
+     ══════════════════════════════════════════════ -->
+<div class="modal-mask" id="cropMask">
+  <div class="modal is-crop">
+    <h2 class="modal-title">卡片上显示哪一块</h2>
+    <p class="modal-sub">拖方框挪位置，拖右下角改大小。点开还是看整张。</p>
+    <div class="cropper" id="cropper">
+      <img id="cropImg" alt="">
+      <div class="crop-frame" id="cropFrame"><i class="crop-grip"></i></div>
+    </div>
+    <p class="form-err" id="cropErr"></p>
+    <div class="modal-actions">
+      <button class="btn-plain" data-close="cropMask">不改了</button>
+      <button class="btn-solid" id="cropOk">就这样</button>
     </div>
   </div>
 </div>

@@ -227,6 +227,133 @@ const Hole = (function () {
     return box;
   }
 
+  /* ---------- 卡片取景 ---------- */
+  /* 缩略图是 4:3，框也按 4:3 走，这样按框还原时不会变形。
+     方形的缩略图（时间线上那个小图）就以框的中心为准裁一下。 */
+  const CROP_RATIO = 4 / 3;
+  let cropFrame = null;                // { fw, fh, fx, fy } 像素
+  let cropDone = null;
+
+  function clampCrop(f, dw, dh) {
+    const fw = Math.max(60, Math.min(f.fw, dw, dh * CROP_RATIO));
+    const fh = fw / CROP_RATIO;
+    return {
+      fw,
+      fh,
+      fx: Math.min(Math.max(0, f.fx), Math.max(0, dw - fw)),
+      fy: Math.min(Math.max(0, f.fy), Math.max(0, dh - fh))
+    };
+  }
+
+  function paintCropFrame() {
+    if (!cropFrame) return;
+    const b = $('cropFrame');
+    b.style.left = cropFrame.fx + 'px';
+    b.style.top = cropFrame.fy + 'px';
+    b.style.width = cropFrame.fw + 'px';
+    b.style.height = cropFrame.fh + 'px';
+  }
+
+  function openCropper(src, crop, onDone) {
+    cropDone = onDone || null;
+    cropFrame = null;
+    $('cropErr').textContent = '';
+    $('cropFrame').hidden = true;
+
+    const img = $('cropImg');
+    img.src = src;
+    openModal('cropMask');
+
+    let tries = 0;
+    const place = () => {
+      const dw = img.clientWidth;
+      const dh = img.clientHeight;
+      if ((!dw || !dh) && tries++ < 40) { requestAnimationFrame(place); return; }
+      if (!dw || !dh) { $('cropErr').textContent = '图片没加载出来，换一张试试。'; return; }
+
+      let f;
+      if (crop && crop.w > 0 && crop.h > 0) {
+        f = { fw: crop.w * dw, fh: crop.h * dh, fx: crop.x * dw, fy: crop.y * dh };
+      } else {
+        const fw = Math.min(dw, dh * CROP_RATIO);
+        f = { fw, fh: fw / CROP_RATIO, fx: (dw - fw) / 2, fy: (dh - fw / CROP_RATIO) / 2 };
+      }
+      cropFrame = clampCrop(f, dw, dh);
+      paintCropFrame();
+      $('cropFrame').hidden = false;
+    };
+    requestAnimationFrame(place);
+  }
+
+  /* 拖方框、拖右下角 */
+  function bindCropper() {
+    const frame = $('cropFrame');
+    const img = $('cropImg');
+    let mode = null, sx = 0, sy = 0, base = null;
+
+    frame.addEventListener('pointerdown', (e) => {
+      if (!cropFrame) return;
+      mode = e.target.classList.contains('crop-grip') ? 'size' : 'move';
+      sx = e.clientX; sy = e.clientY;
+      base = Object.assign({}, cropFrame);
+      e.preventDefault();
+      try { frame.setPointerCapture(e.pointerId); } catch (_) { }
+    });
+
+    frame.addEventListener('pointermove', (e) => {
+      if (!mode || !base) return;
+      const dw = img.clientWidth, dh = img.clientHeight;
+      if (!dw || !dh) return;
+
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      const f = Object.assign({}, base);
+      if (mode === 'move') {
+        f.fx = base.fx + dx;
+        f.fy = base.fy + dy;
+      } else {
+        /* 往右拖或往下拖都在放大，取变化大的那个方向 */
+        f.fw = base.fw + Math.max(dx, dy * CROP_RATIO);
+      }
+      cropFrame = clampCrop(f, dw, dh);
+      paintCropFrame();
+    });
+
+    const end = () => { mode = null; base = null; };
+    frame.addEventListener('pointerup', end);
+    frame.addEventListener('pointercancel', end);
+  }
+
+  /* 卡片上的照片：框过就按框显示，没框过还是老的居中裁切 */
+  function paintPhoto(box, m, square) {
+    const crop = m.crop;
+    if (!crop || !(crop.w > 0) || !(crop.h > 0)) {
+      const img = document.createElement('img');
+      img.src = m.photo;
+      img.alt = m.title || '回忆';
+      img.loading = 'lazy';
+      box.appendChild(img);
+      return;
+    }
+
+    box.style.backgroundImage = 'url("' + m.photo + '")';
+    box.style.backgroundRepeat = 'no-repeat';
+
+    if (square) {
+      const cx = (crop.x + crop.w / 2) * 100;
+      const cy = (crop.y + crop.h / 2) * 100;
+      box.style.backgroundSize = 'cover';
+      box.style.backgroundPosition = cx.toFixed(2) + '% ' + cy.toFixed(2) + '%';
+    } else {
+      /* 4:3 的框放进 4:3 的格子里，正好还原，不会拉伸 */
+      const sw = 100 / crop.w;
+      const sh = 100 / crop.h;
+      const px = crop.w < 1 ? (crop.x / (1 - crop.w)) * 100 : 0;
+      const py = crop.h < 1 ? (crop.y / (1 - crop.h)) * 100 : 0;
+      box.style.backgroundSize = sw.toFixed(2) + '% ' + sh.toFixed(2) + '%';
+      box.style.backgroundPosition = px.toFixed(2) + '% ' + py.toFixed(2) + '%';
+    }
+  }
+
   /* ---------- 看大图 ---------- */
   let lbOpenedAt = 0;
   function openLightbox(src) {
@@ -259,6 +386,27 @@ const Hole = (function () {
     if (m.author) meta.appendChild(el('span', null, m.author));
     if (m.happened_at) meta.appendChild(el('span', null, fmtDate(m.happened_at)));
     if (meta.childNodes.length) cap.appendChild(meta);
+
+    /* 老照片也能补一个取景：点开还是整张，卡片上按框显示 */
+    if (m.photo) {
+      const tune = el('button', 'lb-tune', '调整卡片取景');
+      tune.type = 'button';
+      tune.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openCropper(m.photo, m.crop, async (c) => {
+          try {
+            await API.setMemoryCrop(m.id, c);
+            m.crop = c;
+            renderMemPane();
+            closeLightbox();
+            toast('卡片改好了');
+          } catch (err) {
+            toast(err.message === 'KEY' ? HOLE.keyWrong : '没改成，等下再试');
+          }
+        });
+      });
+      cap.appendChild(tune);
+    }
 
     /* 评论跟在下面，看得见才算数 */
     const cmt = $('lightboxCmt');
@@ -356,11 +504,7 @@ const Hole = (function () {
 
       const photo = el('div', 'mem-photo');
       if (m.photo) {
-        const img = document.createElement('img');
-        img.src = m.photo;
-        img.alt = m.title || '回忆';
-        img.loading = 'lazy';
-        photo.appendChild(img);
+        paintPhoto(photo, m);
       } else {
         photo.classList.add('is-empty');
       }
@@ -438,11 +582,7 @@ const Hole = (function () {
 
       if (m.photo) {
         const thumb = el('div', 'tl-thumb');
-        const img = document.createElement('img');
-        img.src = m.photo;
-        img.alt = m.title || '回忆';
-        img.loading = 'lazy';
-        thumb.appendChild(img);
+        paintPhoto(thumb, m, true);
         card.appendChild(thumb);
       }
 
@@ -481,6 +621,20 @@ const Hole = (function () {
       b.classList.toggle('is-on', b.dataset.view === v);
     });
     renderMemPane();
+  }
+
+  /* ---------- 随便看看 ---------- */
+  let lastShuffleId = null;
+
+  function shuffleMemory() {
+    if (!memItems.length) { toast('还没有回忆，先放一张吧'); return; }
+    let pool = memItems;
+    if (memItems.length > 1 && lastShuffleId != null) {
+      pool = memItems.filter((x) => String(x.id) !== String(lastShuffleId));
+    }
+    const m = pool[Math.floor(Math.random() * pool.length) || 0];
+    lastShuffleId = m.id;
+    openMemory(m);
   }
 
   /* ---------- 渲染：留言 ---------- */
@@ -695,19 +849,24 @@ const Hole = (function () {
 
   /* ---------- 添加：回忆 ---------- */
   let pendingPhoto = null;
+  let pendingCrop = null;
 
   function setPreview(dataUrl) {
     pendingPhoto = dataUrl;
+    pendingCrop = null;
     const img = $('dropPreview');
     const drop = $('drop');
+    const pick = $('cropPickBtn');
     if (dataUrl) {
       img.src = dataUrl;
       img.hidden = false;
       drop.classList.add('has-img');
+      if (pick) pick.hidden = false;
     } else {
       img.hidden = true;
       img.removeAttribute('src');
       drop.classList.remove('has-img');
+      if (pick) pick.hidden = true;
     }
   }
 
@@ -749,7 +908,8 @@ const Hole = (function () {
         title: title || null,
         note: note || null,
         happened_at: $('memDate').value || null,
-        author: pendingMemAuthor || null
+        author: pendingMemAuthor || null,
+        crop: pendingCrop || null
       });
       memItems.unshift(item);
       renderMemPane();
@@ -951,6 +1111,38 @@ const Hole = (function () {
 
     document.querySelectorAll('#viewSwitch button').forEach(b => {
       onTap(b, () => setView(b.dataset.view), null);
+    });
+
+    /* 随便看看：随机翻一段旧回忆，不连着翻到同一条 */
+    $('shuffleBtn').textContent = HOLE.shuffle;
+    onTap($('shuffleBtn'), shuffleMemory, null);
+
+    /* 取景 */
+    bindCropper();
+    $('cropPickBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!pendingPhoto) return;
+      openCropper(pendingPhoto, pendingCrop, (c) => {
+        pendingCrop = c;
+        toast('卡片就显示这块');
+      });
+    });
+    $('cropOk').addEventListener('click', () => {
+      if (!cropFrame) { closeModal('cropMask'); return; }
+      const img = $('cropImg');
+      const dw = img.clientWidth;
+      const dh = img.clientHeight;
+      const f = cropFrame;
+      const crop = {
+        x: +(f.fx / dw).toFixed(4),
+        y: +(f.fy / dh).toFixed(4),
+        w: +(f.fw / dw).toFixed(4),
+        h: +(f.fh / dh).toFixed(4)
+      };
+      const cb = cropDone;
+      cropDone = null;
+      closeModal('cropMask');
+      if (cb) cb(crop);
     });
 
     $('clearDone').addEventListener('click', clearDoneTodos);

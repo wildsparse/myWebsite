@@ -1271,6 +1271,105 @@ input, textarea { font: inherit; color: inherit; }
   text-align: left;
 }
 
+/* ---------- 卡片取景 ---------- */
+.pane-hint .shuffle {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-right: .9rem;
+  font-family: var(--font-serif);
+  font-size: .72rem;
+  letter-spacing: .16em;
+  color: var(--amber-dim);
+  cursor: pointer;
+  transition: color .35s;
+}
+@media (hover: hover) {
+  .pane-hint .shuffle:hover { color: var(--amber); }
+}
+.pane-hint .shuffle:active { color: var(--amber-hi); }
+
+.drop { position: relative; }
+.crop-pick {
+  position: absolute;
+  right: .6rem;
+  bottom: .6rem;
+  padding: .3rem .7rem;
+  border: 1px solid rgba(217, 180, 137, .34);
+  border-radius: 20px;
+  background: rgba(8, 6, 4, .82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-family: var(--font-serif);
+  font-size: .72rem;
+  letter-spacing: .06em;
+  color: var(--amber);
+  cursor: pointer;
+}
+.crop-pick:active { background: rgba(217, 180, 137, .16); }
+
+#cropMask { z-index: 240; }
+.modal.is-crop { max-width: 560px; }
+.cropper {
+  position: relative;
+  width: 100%;
+  margin: .2rem 0 .4rem;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #0b0907;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cropper img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+.crop-frame {
+  position: absolute;
+  border: 1px solid rgba(240, 211, 172, .92);
+  box-shadow: 0 0 0 9999px rgba(6, 5, 4, .66);
+  cursor: move;
+  touch-action: none;
+}
+.crop-frame::before,
+.crop-frame::after {
+  content: '';
+  position: absolute;
+  background: rgba(240, 211, 172, .18);
+}
+.crop-frame::before { left: 33.33%; right: 33.33%; top: 0; bottom: 0; border-left: 1px solid rgba(240,211,172,.18); border-right: 1px solid rgba(240,211,172,.18); }
+.crop-frame::after { top: 33.33%; bottom: 33.33%; left: 0; right: 0; border-top: 1px solid rgba(240,211,172,.18); border-bottom: 1px solid rgba(240,211,172,.18); }
+.crop-grip {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--amber);
+  box-shadow: 0 0 0 3px rgba(10, 8, 6, .7);
+  cursor: nwse-resize;
+}
+
+/* 浮层里那个小按钮：给老照片补取景 */
+.lb-tune {
+  margin-top: 1rem;
+  padding: .34rem .8rem;
+  border: 1px solid rgba(214, 178, 134, .2);
+  border-radius: 20px;
+  background: transparent;
+  font-family: var(--font-serif);
+  font-size: .7rem;
+  letter-spacing: .1em;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color .3s, border-color .3s;
+}
+.lb-tune:hover { color: var(--amber); border-color: rgba(217, 180, 137, .4); }
+
 /* ---------- 评论 ---------- */
 /* 卡片上那个小标签：不点开也知道有几条 */
 .cmt-count {

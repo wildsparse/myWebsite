@@ -94,6 +94,19 @@ const API = (function () {
     return true;
   }
 
+  /* 只改卡片上显示哪一块，照片本身不动 */
+  async function setMemoryCrop(id, crop) {
+    if (await probe() === 'remote') {
+      await req('/api/memories/' + id, { method: 'PATCH', body: JSON.stringify({ crop }) });
+      return true;
+    }
+    memCache = readLS(K_MEM, []).map(x =>
+      String(x.id) === String(id) ? Object.assign({}, x, { crop }) : x
+    );
+    writeLS(K_MEM, memCache);
+    return true;
+  }
+
   /* ---------- 留言 ---------- */
   async function listMessages() {
     if (await probe() === 'remote') {
@@ -256,7 +269,7 @@ const API = (function () {
 
   return {
     probe, getKey, setKey, clearKey, hasKey, verifyKey, checkStoredKey,
-    listMemories, addMemory, delMemory,
+    listMemories, addMemory, delMemory, setMemoryCrop,
     listMessages, addMessage, delMessage,
     listTodos, addTodo, toggleTodo, delTodo,
     listCommentCounts, listComments, addComment, delComment

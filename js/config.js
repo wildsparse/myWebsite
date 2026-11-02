@@ -160,6 +160,7 @@ const HOLE = {
   // 回忆的两种看法
   viewGrid: '网格',
   viewTimeline: '时间线',
+  shuffle: '随便看看',
 
   // 每个分区的提示
   hintMemories: '照片，和照片背后的那点事',

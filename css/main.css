@@ -101,6 +101,37 @@ input, textarea { font: inherit; color: inherit; }
 }
 .letter-scroll::-webkit-scrollbar { display: none; }
 
+/* 等声音的那一小会 */
+.letter-wait {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 44%;
+  z-index: 2;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: .84rem;
+  letter-spacing: .3em;
+  text-indent: .3em;
+  color: #b8ab9b;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .9s var(--ease), transform .9s var(--ease);
+  pointer-events: none;
+}
+.letter-wait.is-on {
+  opacity: 1;
+  transform: none;
+  animation: waitPulse 2.4s ease-in-out infinite;
+}
+@keyframes waitPulse {
+  0%, 100% { opacity: .48; }
+  50% { opacity: .95; }
+}
+
+/* 声音还没起来时，底下那个按钮先别让人点 */
+.audio-btn.is-waiting { opacity: .3; pointer-events: none; }
+
 .letter-inner {
   max-width: 640px;
   margin: 0 auto;

@@ -1,13 +1,16 @@
 /* ============================================================
    letter.js —— 第一幕：那封信
    两种节奏：
-     有音频 → 文字跟着音频进度走（暂停即停，拖回去也跟着退）
-     没音频 → 按打字机速度慢慢出字
+     有声音 → 文字跟着声音走（暂停即停，拖回去也跟着退）
+     没声音 → 按打字机速度慢慢出字
    ============================================================ */
 
 const Letter = (function () {
 
   const $ = (id) => document.getElementById(id);
+
+  const WAIT_MS = 9000;      // 最多等多久让声音起来
+  const HINT_DELAY = 700;    // 等超过这么久，才提示「声音正在赶来」
 
   let aborted = false;
   let finished = false;
@@ -22,9 +25,9 @@ const Letter = (function () {
   let rafId = null;
 
   let audio = null;
-  let audioReady = false;
+  let audioBroken = false;
 
-  /* ---------- 节奏 ---------- */
+  /* ---------- 节奏（没有声音时用） ---------- */
   const SPEED = {
     char: 60,          // 每个字的间隔
     comma: 240,        // ，、；：
@@ -115,6 +118,12 @@ const Letter = (function () {
     if (date) date.style.opacity = '.7';
   }
 
+  function shownChars() {
+    let n = 0;
+    for (const b of blocks) n += Math.max(0, b.typed);
+    return n;
+  }
+
   function follow() {
     const box = $('letterScroll');
     if (!box) return;
@@ -144,8 +153,10 @@ const Letter = (function () {
 
   /* ---------- 模式一：自己走 ---------- */
   function startAuto() {
+    if (mode === 'auto') return;
     mode = 'auto';
-    let T = 0;
+    stopLoops();
+    let T = shownChars();
     const tick = () => {
       if (finished) return;
       if (aborted) { revealAll(); finish(); return; }
@@ -157,16 +168,27 @@ const Letter = (function () {
     tick();
   }
 
-  /* ---------- 模式二：跟着音频 ---------- */
+  /* ---------- 模式二：跟着声音 ---------- */
+  function durationOf() {
+    if (audio) {
+      const d = audio.duration;
+      if (d && isFinite(d) && d > 0) return d;
+    }
+    return AUDIO.duration || 0;
+  }
+
   function startAudioSync() {
+    if (mode === 'audio') return;
     mode = 'audio';
+    stopLoops();
+
     const step = () => {
       if (finished) return;
       if (aborted) { revealAll(); finish(); return; }
 
-      const dur = audio.duration;
-      if (dur && isFinite(dur) && dur > 0) {
-        const p = Math.min(1, audio.currentTime / dur);
+      const d = durationOf();
+      if (d > 0) {
+        const p = Math.min(1, Math.max(0, audio.currentTime / d));
         reveal(Math.floor(p * total));
       }
 
@@ -199,42 +221,21 @@ const Letter = (function () {
     if (finished) return;
     aborted = true;
     stopLoops();
+    if (audio && !audio.paused) audio.pause();
     revealAll();
     $('skipBtn').textContent = '已全部展开';
     setTimeout(finish, 320);
   }
 
-  /* ---------- 音频 ---------- */
-  function initAudio() {
-    audio = new Audio();
-    audio.src = AUDIO.src;
-    audio.preload = 'metadata';
+  /* ---------- 提示 ---------- */
+  function showWait(on) {
+    const el = $('letterWait');
+    if (el) el.classList.toggle('is-on', !!on);
+  }
 
-    const btn = $('audioBtn');
-    const label = $('audioLabel');
-    if (label) label.textContent = AUDIO.label;
-
-    const markReady = () => { audioReady = true; };
-    audio.addEventListener('loadedmetadata', markReady, { once: true });
-    audio.addEventListener('canplaythrough', markReady, { once: true });
-
-    audio.addEventListener('error', () => {
-      audioReady = false;
-      btn.style.display = 'none';
-    });
-
-    audio.addEventListener('ended', () => btn.classList.remove('is-playing'));
-    audio.addEventListener('pause', () => btn.classList.remove('is-playing'));
-    audio.addEventListener('play', () => btn.classList.add('is-playing'));
-
-    btn.addEventListener('click', async () => {
-      if (!audioReady) { toast('音频还没放进来'); return; }
-      if (audio.paused) {
-        try { await audio.play(); } catch { toast('播放被挡住了，再点一次'); }
-      } else {
-        audio.pause();
-      }
-    });
+  function setBtnLabel(text) {
+    const l = $('audioLabel');
+    if (l) l.textContent = text;
   }
 
   function toast(msg) {
@@ -243,11 +244,129 @@ const Letter = (function () {
     t.textContent = msg;
     t.classList.add('is-on');
     clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('is-on'), 2200);
+    t._timer = setTimeout(() => t.classList.remove('is-on'), 2400);
+  }
+
+  /* ---------- 声音 ---------- */
+  function initAudio() {
+    audio = new Audio();
+    audio.preload = 'none';        // 先不下，别抢首屏的带宽
+    audio.src = AUDIO.src;
+
+    setBtnLabel(AUDIO.label);
+
+    // 页面自己的东西下完了，再偷偷把声音拉下来，等用户点的时候就不卡
+    const warm = () => {
+      try { audio.preload = 'auto'; audio.load(); } catch (_) {}
+    };
+    if (document.readyState === 'complete') setTimeout(warm, 400);
+    else window.addEventListener('load', () => setTimeout(warm, 400), { once: true });
+
+    audio.addEventListener('error', () => {
+      audioBroken = true;
+      const btn = $('audioBtn');
+      if (btn) btn.style.display = 'none';
+    });
+
+    audio.addEventListener('ended', () => {
+      $('audioBtn').classList.remove('is-playing');
+      setBtnLabel('再听一遍');
+    });
+
+    audio.addEventListener('pause', () => {
+      $('audioBtn').classList.remove('is-playing');
+      if (!finished && !audio.ended) setBtnLabel('继续听');
+    });
+
+    audio.addEventListener('play', () => {
+      $('audioBtn').classList.add('is-playing');
+      setBtnLabel(AUDIO.label);
+    });
+
+    $('audioBtn').addEventListener('click', async () => {
+      if (audioBroken) { toast('声音没加载出来，刷新一下试试'); return; }
+
+      // 已经读完：从头再来一遍
+      if (finished) { restart(); return; }
+
+      if (audio.paused) {
+        // 文字若已按打字机走了一段，把声音接到那个位置，不让人重听
+        if (mode !== 'audio') {
+          const T = shownChars();
+          const d = durationOf();
+          if (T > 0 && d > 0 && total > 0) {
+            try { audio.currentTime = (T / total) * d; } catch (_) {}
+          }
+        }
+        try {
+          await audio.play();
+        } catch (_) {
+          toast('播放被挡住了，再点一次');
+          return;
+        }
+        startAudioSync();
+      } else {
+        audio.pause();
+      }
+    });
+  }
+
+  /* 等声音真正响起来。play() 必须在这里同步发出，才算在用户手势里。 */
+  function waitPlaying(ms) {
+    const btn = $('audioBtn');
+    if (btn) btn.classList.add('is-waiting');
+
+    return new Promise((resolve) => {
+      let done = false;
+      let hintTimer = setTimeout(() => showWait(true), HINT_DELAY);
+      let clock = setTimeout(() => { finishWait(false); }, ms);
+
+      function finishWait(v) {
+        if (done) return;
+        done = true;
+        clearTimeout(hintTimer);
+        clearTimeout(clock);
+        showWait(false);
+        if (btn) btn.classList.remove('is-waiting');
+        audio.removeEventListener('playing', onPlaying);
+        audio.removeEventListener('error', onError);
+        resolve(v);
+      }
+      function onPlaying() { finishWait(true); }
+      function onError() { audioBroken = true; finishWait(false); }
+
+      audio.addEventListener('playing', onPlaying);
+      audio.addEventListener('error', onError);
+
+      // 同步发起，保住浏览器的自动播放许可
+      const p = audio.play();
+      if (p && p.catch) p.catch(() => finishWait(false));
+    });
+  }
+
+  /* ---------- 从头再来 ---------- */
+  function restart() {
+    stopLoops();
+    finished = false;
+    aborted = false;
+    mode = null;
+    started = true;
+
+    build();
+    reveal(0);
+
+    const nx = $('toIntro');
+    if (nx) nx.hidden = true;
+    const sb = $('skipBtn');
+    if (sb) { sb.style.display = ''; sb.textContent = '显示全文'; }
+
+    try { audio.currentTime = 0; } catch (_) {}
+
+    audio.play().then(() => startAudioSync()).catch(() => startAuto());
   }
 
   /* ---------- 开场 ---------- */
-  async function begin() {
+  function begin() {
     if (started) return;
     started = true;
 
@@ -256,17 +375,19 @@ const Letter = (function () {
     $('letterBar').classList.add('is-on');
 
     build();
+    reveal(0);
 
-    if (audio && audioReady) {
-      try {
-        await audio.play();
+    if (!audio || audioBroken) { startAuto(); return; }
+
+    waitPlaying(WAIT_MS).then((ready) => {
+      if (ready) {
         startAudioSync();
-        return;
-      } catch {
-        // 自动播放被挡，退回自己走
+      } else {
+        // 声音没能起来：先按打字机走，之后点按钮可以接管
+        if (audio && !audio.paused) startAudioSync();
+        else { setBtnLabel('点这里听声音'); startAuto(); }
       }
-    }
-    startAuto();
+    });
   }
 
   function init() {
@@ -285,5 +406,22 @@ const Letter = (function () {
     });
   }
 
-  return { init, begin, skip };
+  /* 调试用：?debug=1 时可以从控制台看进度 */
+  function state() {
+    return {
+      mode,
+      total,
+      shown: shownChars(),
+      t: audio ? Math.round(audio.currentTime * 100) / 100 : 0,
+      d: Math.round(durationOf() * 10) / 10,
+      paused: audio ? audio.paused : true,
+      ended: audio ? audio.ended : false
+    };
+  }
+  if (/[?&]debug=1/.test(location.search)) {
+    window.__letterState = state;
+    window.__letterAudio = () => audio;
+  }
+
+  return { init, begin, skip, state };
 })();

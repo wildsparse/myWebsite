@@ -27,6 +27,69 @@ const Letter = (function () {
   let audio = null;
   let audioBroken = false;
 
+  /* ---------- 时间轴 ----------
+     audio/timeline.json 是用语音识别量出来的：原文第几个字，出现在第几秒。
+     有它以后，文字就不按"平均语速"推，而是按朗读的真实位置推。
+     文件没加载到（断网、还没传）就退回平均速度，不至于不出字。 */
+  let anchors = null;
+  let anchorDead = false;
+  let anchorTried = false;
+
+  function loadTimeline() {
+    if (anchorTried) return;
+    anchorTried = true;
+    // 万一下不来，四秒后就不再等它，按平均语速走
+    const giveUp = setTimeout(() => { if (!anchors) anchorDead = true; }, 4000);
+    fetch('audio/timeline.json')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (d && d.a && d.a.length > 2) anchors = d.a;
+        else anchorDead = true;
+      })
+      .catch(() => { anchorDead = true; })
+      .finally(() => clearTimeout(giveUp));
+  }
+
+  // 第 t 秒 → 该显示到第几个字
+  function charsAt(t) {
+    const d = durationOf();
+    if (!anchors) return d > 0 ? Math.floor(Math.min(1, Math.max(0, t / d)) * total) : 0;
+
+    const n = anchors.length;
+    if (t <= anchors[0][1]) return anchors[0][0];
+    if (t >= anchors[n - 1][1]) return total;
+
+    let lo = 0, hi = n - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (anchors[mid][1] <= t) lo = mid; else hi = mid;
+    }
+    const i0 = anchors[lo][0], t0 = anchors[lo][1];
+    const i1 = anchors[hi][0], t1 = anchors[hi][1];
+    const k = t1 > t0 ? (t - t0) / (t1 - t0) : 0;
+    return Math.round(i0 + (i1 - i0) * k);
+  }
+
+  // 第 T 个字 → 它被念到的秒数（点"听声音"时把声音接到文字现在的位置）
+  function timeAt(T) {
+    const d = durationOf();
+    if (!anchors) return total > 0 ? (T / total) * d : 0;
+
+    const n = anchors.length;
+    if (T <= anchors[0][0]) return anchors[0][1];
+    if (T >= anchors[n - 1][0]) return anchors[n - 1][1];
+
+    let lo = 0, hi = n - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (anchors[mid][0] <= T) lo = mid; else hi = mid;
+    }
+    const i0 = anchors[lo][0], t0 = anchors[lo][1];
+    const i1 = anchors[hi][0], t1 = anchors[hi][1];
+    const k = i1 > i0 ? (T - i0) / (i1 - i0) : 0;
+    return t0 + (t1 - t0) * k;
+  }
+
   /* ---------- 节奏（没有声音时用） ---------- */
   const SPEED = {
     char: 60,          // 每个字的间隔
@@ -124,11 +187,12 @@ const Letter = (function () {
     return n;
   }
 
+  let followUp = true;        // 人往上翻信的时候，就别再抢滚动条
+
   function follow() {
     const box = $('letterScroll');
-    if (!box) return;
-    const near = box.scrollHeight - box.scrollTop - box.clientHeight < 300;
-    if (near) box.scrollTop = box.scrollHeight;
+    if (!box || !followUp) return;
+    box.scrollTop = box.scrollHeight;
   }
 
   /* ---------- 逐字节奏 ---------- */
@@ -186,10 +250,15 @@ const Letter = (function () {
       if (finished) return;
       if (aborted) { revealAll(); finish(); return; }
 
+      // 时间轴还在路上，先等它一下，别按错误的节奏往前跳
+      if (!anchors && !anchorDead) {
+        rafId = requestAnimationFrame(step);
+        return;
+      }
+
       const d = durationOf();
       if (d > 0) {
-        const p = Math.min(1, Math.max(0, audio.currentTime / d));
-        reveal(Math.floor(p * total));
+        reveal(charsAt(audio.currentTime));
       }
 
       if (audio.ended) { revealAll(); finish(); return; }
@@ -293,9 +362,8 @@ const Letter = (function () {
         // 文字若已按打字机走了一段，把声音接到那个位置，不让人重听
         if (mode !== 'audio') {
           const T = shownChars();
-          const d = durationOf();
-          if (T > 0 && d > 0 && total > 0) {
-            try { audio.currentTime = (T / total) * d; } catch (_) {}
+          if (T > 0) {
+            try { audio.currentTime = timeAt(T); } catch (_) {}
           }
         }
         try {
@@ -393,12 +461,20 @@ const Letter = (function () {
   function init() {
     $('overtureTo').textContent = LETTER.to;
     initAudio();
+    loadTimeline();
 
     $('overtureHint').addEventListener('click', begin);
     $('overture').addEventListener('click', (e) => {
       if (e.target.id === 'overture' || e.target.id === 'overtureTo') begin();
     });
     $('skipBtn').addEventListener('click', skip);
+
+    const box = $('letterScroll');
+    if (box) {
+      box.addEventListener('scroll', () => {
+        followUp = box.scrollHeight - box.scrollTop - box.clientHeight < 48;
+      });
+    }
 
     document.addEventListener('keydown', (e) => {
       if (!started && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); begin(); }
@@ -414,6 +490,7 @@ const Letter = (function () {
       shown: shownChars(),
       t: audio ? Math.round(audio.currentTime * 100) / 100 : 0,
       d: Math.round(durationOf() * 10) / 10,
+      anchors: anchors ? anchors.length : (anchorDead ? 'none' : 'loading'),
       paused: audio ? audio.paused : true,
       ended: audio ? audio.ended : false
     };

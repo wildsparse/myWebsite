@@ -23,6 +23,40 @@ const Hole = (function () {
     return n;
   }
 
+  /* 手机上点 div 常有「点一下没反应」的情况：iOS 上带 :hover 效果的元素，
+     第一次触摸只把它当成悬停，不肯派发 click。这里自己认「按下—抬起」
+     这一次手势，和 click 互相去重，两种内核都能打开。 */
+  function onTap(node, fn, skipSel) {
+    const skip = skipSel === undefined ? 'button, a, input, label' : skipSel;
+    let last = 0;
+    const fire = (e) => {
+      const hit = e.target;
+      if (skip && hit && hit.closest && hit.closest(skip)) return;
+      const now = Date.now();
+      if (now - last < 600) return;
+      last = now;
+      fn(e);
+    };
+
+    let x0 = 0, y0 = 0, t0 = 0, moved = false;
+    node.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); moved = false;
+    }, { passive: true });
+    node.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      if (Math.abs(t.clientX - x0) > 16 || Math.abs(t.clientY - y0) > 16) moved = true;
+    }, { passive: true });
+    node.addEventListener('touchend', (e) => {
+      if (moved || Date.now() - t0 > 800) return;   // 滑动页面不算点
+      fire(e);
+    }, { passive: true });
+
+    node.addEventListener('click', fire);
+  }
+
   function fmtDate(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -56,10 +90,13 @@ const Hole = (function () {
   function closeModal(id) { $(id).classList.remove('is-on'); }
 
   /* ---------- 看大图 ---------- */
+  let lbOpenedAt = 0;
+
   function openLightbox(src) {
     $('lightboxImg').src = src;
     $('lightboxImg').hidden = false;
     $('lightboxCap').innerHTML = '';
+    lbOpenedAt = Date.now();
     $('lightbox').classList.add('is-on');
   }
 
@@ -85,10 +122,13 @@ const Hole = (function () {
     if (m.happened_at) meta.appendChild(el('span', null, fmtDate(m.happened_at)));
     if (meta.childNodes.length) cap.appendChild(meta);
 
+    lbOpenedAt = Date.now();
     $('lightbox').classList.add('is-on');
   }
 
   function closeLightbox() {
+    // 手指抬起那一下的点击会紧接着落在刚出现的浮层上，别让它把浮层关掉
+    if (Date.now() - lbOpenedAt < 400) return;
     $('lightbox').classList.remove('is-on');
     setTimeout(() => {
       if ($('lightbox').classList.contains('is-on')) return;
@@ -173,8 +213,8 @@ const Hole = (function () {
         img.src = m.photo;
         img.alt = m.title || '回忆';
         img.loading = 'lazy';
-        img.addEventListener('click', () => openLightbox(m.photo));
         photo.appendChild(img);
+        onTap(photo, () => openLightbox(m.photo));
       } else {
         photo.classList.add('is-empty');
       }
@@ -242,7 +282,12 @@ const Hole = (function () {
       side.appendChild(el('i', 'tl-dot'));
 
       const card = el('div', 'tl-card');
-      card.addEventListener('click', () => openMemory(m));
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      onTap(card, () => openMemory(m));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMemory(m); }
+      });
 
       if (m.photo) {
         const thumb = el('div', 'tl-thumb');
@@ -732,11 +777,11 @@ const Hole = (function () {
     document.querySelector('[data-add="todo"]').textContent = HOLE.addTodo;
 
     document.querySelectorAll('.tab').forEach(t => {
-      t.addEventListener('click', () => switchPane(t.dataset.pane));
+      onTap(t, () => switchPane(t.dataset.pane), null);
     });
 
     document.querySelectorAll('#viewSwitch button').forEach(b => {
-      b.addEventListener('click', () => setView(b.dataset.view));
+      onTap(b, () => setView(b.dataset.view), null);
     });
 
     $('clearDone').addEventListener('click', clearDoneTodos);

@@ -29,7 +29,7 @@
 /* display: grid / flex 会压过 hidden 属性，这里补回来 */
 [hidden] { display: none !important; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; touch-action: manipulation; }
 
 body {
   background: var(--bg);
@@ -540,6 +540,8 @@ input, textarea { font: inherit; color: inherit; }
   aspect-ratio: 4 / 3;
   overflow: hidden;
   background: #0f0d0a;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .mem-photo img {
   width: 100%; height: 100%;
@@ -1019,9 +1021,17 @@ input, textarea { font: inherit; color: inherit; }
   border: 1px solid rgba(214, 178, 134, .14);
   border-radius: 4px;
   cursor: pointer;
-  transition: border-color .5s;
+  transition: border-color .35s, background .35s;
+  /* 手指点上来立刻响应，不要等浏览器判断是不是双击缩放 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
-.tl-card:hover { border-color: rgba(214, 178, 134, .26); }
+/* 悬停只在真有鼠标的设备上生效：手机上用 :hover 会把第一次点击吃掉 */
+@media (hover: hover) {
+  .tl-card:hover { border-color: rgba(214, 178, 134, .26); }
+}
+.tl-card:active { border-color: rgba(214, 178, 134, .36); background: #1c1712; }
+.tl-card:focus-visible { outline: 2px solid rgba(214, 178, 134, .42); outline-offset: 2px; }
 .tl-thumb {
   width: 92px;
   height: 92px;

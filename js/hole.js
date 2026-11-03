@@ -1101,25 +1101,36 @@ const Hole = (function () {
     return p[0] + ' 年 ' + Number(p[1]) + ' 月';
   }
 
-  function buildLog() {
-    const box = $('logList');
-    if (!box) return;
-    box.innerHTML = '';
-
+  /* 从新到旧；同一天的几条按手写的先后，所以带上原始序号兜底 */
+  function sortedEntries() {
     const all = (typeof CHANGELOG !== 'undefined' && CHANGELOG.entries) ? CHANGELOG.entries : [];
-    if (!all.length) {
-      box.appendChild(el('p', 'log-empty', (typeof CHANGELOG !== 'undefined' && CHANGELOG.empty) || ''));
-      return;
-    }
-
-    /* 从新到旧；同一天的几条按手写的先后，所以带上原始序号兜底 */
-    const list = all
+    return all
       .map((it, i) => ({ it, i }))
       .sort((a, b) => {
         const d = String(b.it.date || '').localeCompare(String(a.it.date || ''));
         return d !== 0 ? d : a.i - b.i;
       })
       .map(x => x.it);
+  }
+
+  /* 没点开时，先露出最新一条（CSS 里限两行，多的折起来） */
+  function paintLogPeek() {
+    const box = $('logOpenText');
+    if (!box) return;
+    const list = sortedEntries();
+    box.textContent = list.length ? (list[0].note || '') : '';
+  }
+
+  function buildLog() {
+    const box = $('logList');
+    if (!box) return;
+    box.innerHTML = '';
+
+    const list = sortedEntries();
+    if (!list.length) {
+      box.appendChild(el('p', 'log-empty', (typeof CHANGELOG !== 'undefined' && CHANGELOG.empty) || ''));
+      return;
+    }
 
     let lastMonth = '';
     list.forEach((it) => {
@@ -1183,10 +1194,10 @@ const Hole = (function () {
     $('shuffleBtn').textContent = HOLE.shuffle;
     onTap($('shuffleBtn'), shuffleMemory, null);
 
-    /* 更新日志：只在打开时构建一次 */
-    $('logOpen').textContent = CHANGELOG.link;
+    /* 更新日志：入口下面先露最新一条，点开才是整张纸 */
+    $('logOpenLabel').textContent = CHANGELOG.link;
     $('logTitle').textContent = CHANGELOG.title;
-    $('logSub').textContent = CHANGELOG.sub;
+    paintLogPeek();
     onTap($('logOpen'), openLog, null);
     $('logClose').addEventListener('click', closeLog);
     $('logSheet').addEventListener('click', (e) => {

@@ -1555,17 +1555,41 @@ input, textarea { font: inherit; color: inherit; }
 }
 
 .log-open {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  padding: .4rem .2rem;
   background: none;
   border: 0;
-  padding: .5rem 1rem;
   cursor: pointer;
+  text-align: left;
+}
+.log-open-label {
+  display: block;
+  text-align: center;
   font-family: var(--font-serif);
   font-size: .74rem;
   letter-spacing: .22em;
   color: var(--ink-3);
   transition: color .4s var(--ease);
 }
-.log-open:active { color: var(--amber-hi); }
+/* 最新一条：最多两行，再长就折起来 */
+.log-open-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: .6rem;
+  font-family: var(--font-serif);
+  font-size: .8rem;
+  line-height: 1.8;
+  color: var(--ink-2);
+  opacity: .82;
+  transition: color .4s var(--ease), opacity .4s var(--ease);
+}
+.log-open-text:empty { display: none; }
+.log-open:active .log-open-label { color: var(--amber-hi); }
 
 /* 整张纸：和看大图一个路子，压暗、居中、自己滚 */
 .log-sheet {
@@ -1601,12 +1625,6 @@ input, textarea { font: inherit; color: inherit; }
   font-size: 1.16rem;
   letter-spacing: .14em;
   color: var(--ink);
-}
-.log-sub {
-  margin-top: .7rem;
-  font-size: .72rem;
-  letter-spacing: .1em;
-  color: var(--ink-3);
 }
 
 .log-month {
@@ -1670,7 +1688,8 @@ input, textarea { font: inherit; color: inherit; }
 .log-close:active { color: var(--amber-hi); }
 
 @media (hover: hover) {
-  .log-open:hover { color: var(--amber); }
+  .log-open:hover .log-open-label { color: var(--amber); }
+  .log-open:hover .log-open-text { opacity: 1; }
   .log-close:hover { color: var(--amber); }
 }
 

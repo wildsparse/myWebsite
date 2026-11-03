@@ -1567,7 +1567,7 @@ input, textarea { font: inherit; color: inherit; }
 }
 .log-open-label {
   display: block;
-  text-align: center;
+  text-align: left;
   font-family: var(--font-serif);
   font-size: .74rem;
   letter-spacing: .22em;

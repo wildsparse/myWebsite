@@ -1544,3 +1544,137 @@ input, textarea { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ============================================================
+   更新日志：树洞最底下那行字，和它点开的那张纸
+   ============================================================ */
+
+.hole-foot {
+  margin-top: 3.5rem;
+  text-align: center;
+}
+
+.log-open {
+  background: none;
+  border: 0;
+  padding: .5rem 1rem;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: .74rem;
+  letter-spacing: .22em;
+  color: var(--ink-3);
+  transition: color .4s var(--ease);
+}
+.log-open:active { color: var(--amber-hi); }
+
+/* 整张纸：和看大图一个路子，压暗、居中、自己滚 */
+.log-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5vh 6vw;
+  background: rgba(6, 5, 4, .95);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .45s var(--ease);
+}
+.log-sheet.is-on { opacity: 1; pointer-events: auto; }
+
+.log-box {
+  width: min(600px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.log-head { padding-bottom: 1.6rem; }
+.log-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 1.16rem;
+  letter-spacing: .14em;
+  color: var(--ink);
+}
+.log-sub {
+  margin-top: .7rem;
+  font-size: .72rem;
+  letter-spacing: .1em;
+  color: var(--ink-3);
+}
+
+.log-month {
+  margin: 2.2rem 0 0;
+  padding-bottom: .8rem;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-serif);
+  font-size: .78rem;
+  letter-spacing: .18em;
+  color: var(--amber-dim);
+}
+.log-month:first-child { margin-top: 0; }
+
+.log-item {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr;
+  gap: 1rem;
+  padding: 1.15rem 0;
+  border-bottom: 1px solid rgba(214, 178, 134, .08);
+}
+.log-day {
+  font-family: var(--font-serif);
+  font-size: .78rem;
+  letter-spacing: .08em;
+  color: var(--ink-3);
+  padding-top: .28rem;
+}
+.log-note {
+  font-family: var(--font-serif);
+  font-size: .95rem;
+  line-height: 1.9;
+  color: var(--ink);
+}
+.log-where {
+  display: block;
+  margin-top: .45rem;
+  font-size: .68rem;
+  letter-spacing: .14em;
+  color: var(--ink-3);
+}
+.log-empty {
+  padding: 2rem 0;
+  font-size: .8rem;
+  letter-spacing: .1em;
+  color: var(--ink-3);
+}
+
+.log-close {
+  display: block;
+  margin: 2.6rem auto .5rem;
+  background: none;
+  border: 0;
+  padding: .6rem 1.2rem;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: .74rem;
+  letter-spacing: .26em;
+  color: var(--ink-3);
+  transition: color .4s var(--ease);
+}
+.log-close:active { color: var(--amber-hi); }
+
+@media (hover: hover) {
+  .log-open:hover { color: var(--amber); }
+  .log-close:hover { color: var(--amber); }
+}
+
+@media (max-width: 620px) {
+  .log-sheet { padding: 3vh 5vw calc(3vh + env(safe-area-inset-bottom)); }
+  .log-box { max-height: 94vh; }
+  .log-item { grid-template-columns: 2rem 1fr; gap: .8rem; }
+  .log-note { font-size: .92rem; line-height: 1.85; }
+  .hole-foot { margin-top: 2.5rem; }
+}

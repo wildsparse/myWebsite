@@ -1090,6 +1090,66 @@ const Hole = (function () {
     });
   }
 
+  /* ---------- 更新日志 ----------
+     内容在 js/config.js 的 CHANGELOG 里手写。这里只负责摆出来，
+     没有增删，点开就是一张纸。 */
+  let logBuilt = false;
+
+  function monthLabel(ym) {
+    const p = String(ym).split('-');
+    if (p.length < 2) return String(ym);
+    return p[0] + ' 年 ' + Number(p[1]) + ' 月';
+  }
+
+  function buildLog() {
+    const box = $('logList');
+    if (!box) return;
+    box.innerHTML = '';
+
+    const all = (typeof CHANGELOG !== 'undefined' && CHANGELOG.entries) ? CHANGELOG.entries : [];
+    if (!all.length) {
+      box.appendChild(el('p', 'log-empty', (typeof CHANGELOG !== 'undefined' && CHANGELOG.empty) || ''));
+      return;
+    }
+
+    /* 从新到旧；同一天的几条按手写的先后，所以带上原始序号兜底 */
+    const list = all
+      .map((it, i) => ({ it, i }))
+      .sort((a, b) => {
+        const d = String(b.it.date || '').localeCompare(String(a.it.date || ''));
+        return d !== 0 ? d : a.i - b.i;
+      })
+      .map(x => x.it);
+
+    let lastMonth = '';
+    list.forEach((it) => {
+      const d = String(it.date || '');
+      const month = d.slice(0, 7);
+      if (month && month !== lastMonth) {
+        lastMonth = month;
+        box.appendChild(el('div', 'log-month', monthLabel(month)));
+      }
+
+      const row = el('div', 'log-item');
+      row.appendChild(el('div', 'log-day', d.slice(8, 10)));
+
+      const body = el('div', 'log-body');
+      body.appendChild(el('div', 'log-note', it.note || ''));
+      if (it.where) body.appendChild(el('span', 'log-where', it.where));
+      row.appendChild(body);
+      box.appendChild(row);
+    });
+  }
+
+  function openLog() {
+    if (!logBuilt) { buildLog(); logBuilt = true; }
+    $('logSheet').classList.add('is-on');
+  }
+
+  function closeLog() {
+    $('logSheet').classList.remove('is-on');
+  }
+
   /* ---------- 初始化 ---------- */
   function init() {
     $('brand').textContent = HOLE.brand;
@@ -1116,6 +1176,16 @@ const Hole = (function () {
     /* 随便看看：随机翻一段旧回忆，不连着翻到同一条 */
     $('shuffleBtn').textContent = HOLE.shuffle;
     onTap($('shuffleBtn'), shuffleMemory, null);
+
+    /* 更新日志：只在打开时构建一次 */
+    $('logOpen').textContent = CHANGELOG.link;
+    $('logTitle').textContent = CHANGELOG.title;
+    $('logSub').textContent = CHANGELOG.sub;
+    onTap($('logOpen'), openLog, null);
+    $('logClose').addEventListener('click', closeLog);
+    $('logSheet').addEventListener('click', (e) => {
+      if (e.target === $('logSheet')) closeLog();
+    });
 
     /* 取景 */
     bindCropper();
@@ -1235,6 +1305,7 @@ const Hole = (function () {
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if ($('logSheet').classList.contains('is-on')) { closeLog(); return; }
         if ($('lightbox').classList.contains('is-on')) { closeLightbox(); return; }
         document.querySelectorAll('.modal-mask.is-on').forEach(m => m.classList.remove('is-on'));
       }

@@ -1141,12 +1141,18 @@ const Hole = (function () {
     });
   }
 
+  let logOpenedAt = 0;
+
   function openLog() {
     if (!logBuilt) { buildLog(); logBuilt = true; }
+    logOpenedAt = Date.now();
     $('logSheet').classList.add('is-on');
   }
 
   function closeLog() {
+    /* 手指抬起那一下的原生 click 会落在刚铺开的这层纸上，一开就关。
+       和看大图一样，头 400 毫秒内不认关闭。 */
+    if (Date.now() - logOpenedAt < 400) return;
     $('logSheet').classList.remove('is-on');
   }
 

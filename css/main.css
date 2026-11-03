@@ -1576,7 +1576,10 @@ input, textarea { font: inherit; color: inherit; }
   align-items: center;
   justify-content: center;
   padding: 5vh 6vw;
-  background: rgba(6, 5, 4, .95);
+  background: rgba(6, 5, 4, .975);
+  /* 底下压着照片，光靠不透明度还是透出字影，糊一层 */
+  -webkit-backdrop-filter: blur(9px) saturate(.8);
+  backdrop-filter: blur(9px) saturate(.8);
   opacity: 0;
   pointer-events: none;
   transition: opacity .45s var(--ease);

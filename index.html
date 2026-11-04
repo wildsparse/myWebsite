@@ -86,10 +86,19 @@
         <div class="view-switch" id="viewSwitch">
           <button data-view="grid" class="is-on"></button>
           <button data-view="timeline"></button>
+          <button data-view="map"></button>
         </div>
       </div>
       <div class="mem-grid" id="memGrid"></div>
       <div class="mem-timeline" id="memTimeline" hidden></div>
+      <div class="mem-map" id="memMap" hidden>
+        <div class="map-hint" id="mapHint" hidden></div>
+        <div class="map-board" id="mapBoard">
+          <img class="map-img" src="/map/china.png" alt="中国地图" draggable="false">
+          <div class="map-pins" id="mapPins"></div>
+        </div>
+        <div class="map-foot" id="mapFoot"></div>
+      </div>
       <div class="empty" id="memEmpty" hidden></div>
     </div>
 
@@ -271,6 +280,37 @@
     <img id="lightboxImg" alt="">
     <div class="lb-cap" id="lightboxCap"></div>
     <div class="lb-cmt" id="lightboxCmt"></div>
+  </div>
+</div>
+
+<!-- 地图上放一个地方（连点顶部日期五次才出得来） -->
+<div class="modal-mask" id="placeMask">
+  <div class="modal">
+    <h2 class="modal-title">这儿是哪儿</h2>
+    <p class="modal-sub">写个地名就行。点错了就取消，再点一次。</p>
+    <div class="field">
+      <label>地方</label>
+      <input type="text" id="placeNameInput" maxlength="12" placeholder="比如 威海">
+    </div>
+    <p class="form-err" id="placeErr"></p>
+    <div class="modal-actions">
+      <button class="btn-plain" data-close="placeMask">算了</button>
+      <button class="btn-solid" id="placeSave">记下</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="placeFile" accept="image/*" hidden>
+
+<!-- 点开一个地方 -->
+<div class="place-sheet" id="placeSheet">
+  <div class="place-box">
+    <div class="place-head">
+      <h2 class="place-name" id="placeName"></h2>
+      <span class="place-sub" id="placeSub"></span>
+      <button class="place-add" id="placeAdd" type="button" hidden>加一张照片</button>
+    </div>
+    <div class="place-grid" id="placeGrid"></div>
+    <button class="place-close" id="placeClose" type="button">收起</button>
   </div>
 </div>
 

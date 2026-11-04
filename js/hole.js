@@ -611,8 +611,11 @@ const Hole = (function () {
   function renderMemPane() {
     renderMemories();
     if (memView === 'timeline') renderTimeline();
+    if (memView === 'map') renderMap();
     $('memGrid').hidden = memView !== 'grid';
     $('memTimeline').hidden = memView !== 'timeline';
+    $('memMap').hidden = memView !== 'map';
+    if (memView === 'map') $('memEmpty').hidden = true;
   }
 
   function setView(v) {
@@ -621,6 +624,175 @@ const Hole = (function () {
       b.classList.toggle('is-on', b.dataset.view === v);
     });
     renderMemPane();
+  }
+
+  /* ---------- 地图 ---------- */
+  let mapBuilt = false;
+
+  async function renderMap() {
+    if (mapBuilt) return;
+    mapBuilt = true;
+    const box = $('mapPins');
+    if (!box) return;
+    box.innerHTML = '';
+
+    /* 先问数据库；没有（或表还没建）就用配置里写死的那几个 */
+    let list = [];
+    try {
+      const r = await API.listPlaces();
+      if (r && r.ready && r.items.length) list = r.items;
+    } catch { }
+    if (!list.length && typeof PLACES !== 'undefined') list = PLACES.slice();
+
+    if (!list.length) {
+      $('mapFoot').textContent = MAP_TEXT.empty;
+      return;
+    }
+
+
+    list.forEach((p) => {
+      const b = el('span', 'map-pin' + (p.kind === 'home' ? ' is-home' : ''));
+      b.style.left = p.x + '%';
+      b.style.top = p.y + '%';
+      b.title = p.name;
+      b.appendChild(el('span', 'map-dot'));
+      box.appendChild(b);
+    });
+
+    /* 五座城在地图上只隔几个像素，钉子会叠在一起。
+       所以不按"点到哪个元素"算，按点得离哪颗最近算。 */
+    onTap(box, (e) => {
+      const t = (e.changedTouches && e.changedTouches[0]) || e;
+      const r = box.getBoundingClientRect();
+      const px = ((t.clientX - r.left) / r.width) * 100;
+      const py = ((t.clientY - r.top) / r.height) * 100;
+
+      let best = null, bd = Infinity;
+      list.forEach((p) => {
+        const d = (p.x - px) * (p.x - px) + (p.y - py) * (p.y - py);
+        if (d < bd) { bd = d; best = p; }
+      });
+
+      /* 编辑模式下：点在已有钉子上就是打开它，点空地才是放新的 */
+      if (editing) {
+        if (best && Math.sqrt(bd) <= 3) { openPlace(best); return; }
+        pendingSpot = { x: px, y: py };
+        openPlaceModal();
+        return;
+      }
+
+      if (best && Math.sqrt(bd) <= 7) openPlace(best);
+    }, null);
+
+    const foot = $('mapFoot');
+    foot.innerHTML = '';
+    foot.appendChild(el('p', 'map-places', list.map((p) => p.name).join(' · ')));
+    foot.appendChild(el('span', 'map-credit',
+      MAP_TEXT.count.replace('{n}', list.length) + ' · ' + MAP_TEXT.credit));
+  }
+
+  /* 点开一个地方：照片从接口来，没有就写一句空 */
+  let placeOpenedAt = 0;
+
+  function placeEmpty(text) {
+    const p = el('p', 'log-empty', text);
+    p.style.gridColumn = '1 / -1';
+    $('placeGrid').appendChild(p);
+  }
+
+  let currentPlace = null;
+
+  async function openPlace(p) {
+    currentPlace = p;
+    $('placeAdd').hidden = !(editing && p.id);
+    $('placeName').textContent = p.name;
+    const bits = [];
+    if (p.kind === 'home') bits.push(MAP_TEXT.nowHere);
+    if (p.count) bits.push(p.count + ' 张照片');
+    $('placeSub').textContent = bits.join(' · ');
+    $('placeGrid').innerHTML = '';
+    placeOpenedAt = Date.now();
+    $('placeSheet').classList.add('is-on');
+
+    if (!p.id) { placeEmpty('还没放照片。'); return; }
+
+    let shots = [];
+    try { shots = await API.listPlacePhotos(p.id); } catch { }
+    if (!shots.length) { placeEmpty('还没放照片。'); return; }
+
+    const grid = $('placeGrid');
+    shots.forEach((s) => {
+      const cell = el('div', 'place-shot');
+      const img = document.createElement('img');
+      img.src = s.photo;
+      img.alt = p.name;
+      img.loading = 'lazy';
+      cell.appendChild(img);
+      onTap(cell, () => openLightbox(s.photo), null);
+      grid.appendChild(cell);
+    });
+  }
+
+  function closePlace() {
+    if (Date.now() - placeOpenedAt < 400) return;
+    $('placeSheet').classList.remove('is-on');
+  }
+
+  /* ---------- 隐藏入口：连点顶上那行日期五次 ---------- */
+  let editing = false;
+  let pendingSpot = null;
+  let editTaps = 0, lastEditTap = 0;
+
+  function setEditing(on) {
+    editing = on;
+    $('mapBoard').classList.toggle('is-editing', on);
+    $('mapHint').hidden = !on;
+    $('mapHint').textContent = on ? '点一下地图，把去过的地方放上去' : '';
+    if (on && memView !== 'map') setView('map');
+    toast(on ? '可以往地图上放地方了' : '放好了');
+  }
+
+  function openPlaceModal() {
+    $('placeNameInput').value = '';
+    $('placeErr').textContent = '';
+    openModal('placeMask');
+    try { $('placeNameInput').focus(); } catch { }
+  }
+
+  async function savePlace() {
+    const name = $('placeNameInput').value.trim();
+    if (!name) { $('placeErr').textContent = '还没写地名'; return; }
+    if (!pendingSpot) { $('placeErr').textContent = '位置丢了，再点一次地图'; return; }
+
+    $('placeSave').disabled = true;
+    try {
+      await API.addPlace({ name, x: pendingSpot.x, y: pendingSpot.y });
+      closeModal('placeMask');
+      pendingSpot = null;
+      mapBuilt = false;
+      await renderMap();
+      toast('记下了');
+    } catch (e) {
+      if (e.message === 'KEY') { closeModal('placeMask'); handleKeyError(); }
+      else $('placeErr').textContent = '没存上：' + e.message;
+    } finally {
+      $('placeSave').disabled = false;
+    }
+  }
+
+  async function addPhotoTo(place, file) {
+    if (!file || !place) return;
+    if (!file.type.startsWith('image/')) { toast('这不是图片'); return; }
+    toast('在上传…');
+    try {
+      const data = await compressForUpload(file);
+      await API.addPlacePhoto({ place_id: place.id, photo: data });
+      openPlace(place);
+      toast('放上去了');
+    } catch (e) {
+      if (e.message === 'KEY') { handleKeyError(); return; }
+      toast('没传上：' + (e.message || ''));
+    }
   }
 
   /* ---------- 随便看看 ---------- */
@@ -1178,6 +1350,7 @@ const Hole = (function () {
     $('hintTodos').textContent = HOLE.hintTodos;
     $('viewSwitch').children[0].textContent = HOLE.viewGrid;
     $('viewSwitch').children[1].textContent = HOLE.viewTimeline;
+    $('viewSwitch').children[2].textContent = HOLE.viewMap;
     document.querySelector('[data-add="memory"]').textContent = HOLE.addMemory;
     document.querySelector('[data-add="message"]').textContent = HOLE.addMessage;
     document.querySelector('[data-add="todo"]').textContent = HOLE.addTodo;
@@ -1202,6 +1375,27 @@ const Hole = (function () {
     $('logClose').addEventListener('click', closeLog);
     $('logSheet').addEventListener('click', (e) => {
       if (e.target === $('logSheet')) closeLog();
+    });
+
+    /* 地图：点开的地方，三种关法同别处 */
+    onTap($('placeClose'), closePlace, null);
+    onTap($('placeSave'), savePlace, null);
+    onTap($('placeAdd'), () => $('placeFile').click(), null);
+    $('placeFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';
+      addPhotoTo(currentPlace, f);
+    });
+
+    /* 隐藏入口：连点顶上那行日期五次，开关「往地图上放地方」 */
+    $('todayLine').addEventListener('click', () => {
+      const now = Date.now();
+      editTaps = (now - lastEditTap < 800) ? editTaps + 1 : 1;
+      lastEditTap = now;
+      if (editTaps >= 5) { editTaps = 0; setEditing(!editing); }
+    });
+    $('placeSheet').addEventListener('click', (e) => {
+      if (e.target === $('placeSheet')) closePlace();
     });
 
     /* 取景 */
@@ -1322,8 +1516,9 @@ const Hole = (function () {
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        if ($('logSheet').classList.contains('is-on')) { closeLog(); return; }
         if ($('lightbox').classList.contains('is-on')) { closeLightbox(); return; }
+        if ($('placeSheet').classList.contains('is-on')) { closePlace(); return; }
+        if ($('logSheet').classList.contains('is-on')) { closeLog(); return; }
         document.querySelectorAll('.modal-mask.is-on').forEach(m => m.classList.remove('is-on'));
       }
     });

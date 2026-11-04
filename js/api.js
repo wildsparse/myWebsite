@@ -10,6 +10,8 @@ const API = (function () {
   const K_MSG = 'th.local.messages';
   const K_TODO = 'th.local.todos';
   const K_CMT = 'th.local.comments';
+  const K_PLACE = 'th.local.places';
+  const K_PHOTO = 'th.local.placePhotos';
 
   let mode = null;          // 'remote' | 'local'
   let memCache = [];        // 本地模式下的缓存
@@ -57,6 +59,64 @@ const API = (function () {
     if (res.status === 401) { clearKey(); throw new Error('KEY'); }
     if (!res.ok) throw new Error((body && body.error) || ('HTTP ' + res.status));
     return body;
+  }
+
+  /* ---------- 地图上的地方 ---------- */
+  async function listPlaces() {
+    if (await probe() === 'remote') {
+      const j = await req('/api/places');
+      return { items: (j && j.items) || [], ready: !!(j && j.ready) };
+    }
+    const places = readLS(K_PLACE, []);
+    const shots = readLS(K_PHOTO, []);
+    return {
+      ready: true,
+      items: places.map((p) => Object.assign({}, p, {
+        count: shots.filter((x) => String(x.place_id) === String(p.id)).length
+      }))
+    };
+  }
+
+  async function addPlace(data) {
+    if (await probe() === 'remote') {
+      const j = await req('/api/places', { method: 'POST', body: JSON.stringify(data) });
+      return j.item;
+    }
+    const list = readLS(K_PLACE, []);
+    const item = Object.assign({ id: uid(), created_at: nowISO() }, data);
+    list.push(item);
+    writeLS(K_PLACE, list);
+    return Object.assign({ count: 0 }, item);
+  }
+
+  async function delPlace(id) {
+    if (await probe() === 'remote') {
+      await req('/api/places?id=' + encodeURIComponent(id), { method: 'DELETE' });
+      return true;
+    }
+    writeLS(K_PLACE, readLS(K_PLACE, []).filter((p) => String(p.id) !== String(id)));
+    writeLS(K_PHOTO, readLS(K_PHOTO, []).filter((p) => String(p.place_id) !== String(id)));
+    return true;
+  }
+
+  async function listPlacePhotos(id) {
+    if (await probe() === 'remote') {
+      const j = await req('/api/place-photos?place=' + encodeURIComponent(id));
+      return (j && j.items) || [];
+    }
+    return readLS(K_PHOTO, []).filter((p) => String(p.place_id) === String(id));
+  }
+
+  async function addPlacePhoto(data) {
+    if (await probe() === 'remote') {
+      const j = await req('/api/place-photos', { method: 'POST', body: JSON.stringify(data) });
+      return j.item;
+    }
+    const list = readLS(K_PHOTO, []);
+    const item = Object.assign({ id: uid(), created_at: nowISO() }, data);
+    list.push(item);
+    writeLS(K_PHOTO, list);
+    return item;
   }
 
   /* ---------- 回忆 ---------- */
@@ -272,6 +332,7 @@ const API = (function () {
     listMemories, addMemory, delMemory, setMemoryCrop,
     listMessages, addMessage, delMessage,
     listTodos, addTodo, toggleTodo, delTodo,
-    listCommentCounts, listComments, addComment, delComment
+    listCommentCounts, listComments, addComment, delComment,
+    listPlaces, addPlace, delPlace, listPlacePhotos, addPlacePhoto
   };
 })();

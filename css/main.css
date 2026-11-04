@@ -1206,7 +1206,7 @@ input, textarea { font: inherit; color: inherit; }
 .lightbox {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 230;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1699,4 +1699,221 @@ input, textarea { font: inherit; color: inherit; }
   .log-item { grid-template-columns: 2rem 1fr; gap: .8rem; }
   .log-note { font-size: .92rem; line-height: 1.85; }
   .hole-foot { margin-top: 2.5rem; }
+}
+
+/* ============================================================
+   地图：一块压暗的软木，地图印在上面，去过的地方钉一颗钉子
+   ============================================================ */
+
+.mem-map {
+  padding: .2rem 0 0;
+}
+
+.map-board {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #2b2219;
+  background-image:
+    radial-gradient(circle at 18% 26%, rgba(255, 236, 210, .045) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 68% 62%, rgba(0, 0, 0, .10) 0 1.3px, transparent 1.7px);
+  background-size: 6px 6px, 9px 9px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, .35),
+    inset 0 0 70px 24px rgba(0, 0, 0, .55);
+}
+
+.map-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: .66;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.map-pins {
+  position: absolute;
+  inset: 0;
+}
+
+.map-pin {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #f8e4bd;
+  box-shadow: 0 0 0 1.2px rgba(30, 23, 16, .9), 0 0 0 3px rgba(248, 228, 189, .11);
+  animation: pinGlow 5.5s ease-in-out infinite;
+}
+
+.map-pin.is-home .map-dot {
+  box-shadow: 0 0 0 1.2px rgba(30, 23, 16, .9), 0 0 0 4px rgba(248, 228, 189, .17),
+              0 0 0 7.5px rgba(248, 228, 189, .05);
+}
+
+@keyframes pinGlow {
+  0%, 100% { opacity: .82; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-dot { animation: none; }
+}
+
+
+.map-foot {
+  margin-top: 1rem;
+  text-align: center;
+}
+.map-places {
+  font-family: var(--font-serif);
+  font-size: .78rem;
+  letter-spacing: .14em;
+  color: #b39a79;
+}
+.map-credit {
+  display: block;
+  margin-top: .6rem;
+  font-family: var(--font-serif);
+  font-size: .56rem;
+  letter-spacing: .03em;
+  color: rgba(160, 138, 112, .40);
+}
+
+/* 点开一个地方 */
+.place-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 215;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5vh 6vw;
+  background: rgba(6, 5, 4, .95);
+  -webkit-backdrop-filter: blur(9px) saturate(.8);
+  backdrop-filter: blur(9px) saturate(.8);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .45s var(--ease);
+}
+.place-sheet.is-on { opacity: 1; pointer-events: auto; }
+
+.place-box {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.place-head {
+  padding-bottom: 1.4rem;
+  border-bottom: 1px solid var(--line);
+}
+.place-name {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 1.12rem;
+  letter-spacing: .16em;
+  color: var(--ink);
+}
+.place-sub {
+  display: block;
+  margin-top: .55rem;
+  font-size: .68rem;
+  letter-spacing: .1em;
+  color: var(--ink-3);
+}
+
+.place-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .7rem;
+  padding: 1.2rem 0 0;
+}
+.place-shot {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #14100c;
+  cursor: pointer;
+}
+.place-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.place-close {
+  display: block;
+  margin: 2.2rem auto .4rem;
+  background: none;
+  border: 0;
+  padding: .6rem 1.2rem;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: .74rem;
+  letter-spacing: .26em;
+  color: var(--ink-3);
+  transition: color .4s var(--ease);
+}
+.place-close:active { color: var(--amber-hi); }
+
+@media (hover: hover) {
+  .map-pin:hover .map-dot { background: #fff2d8; box-shadow: 0 0 0 1.5px rgba(34,26,18,.9), 0 0 0 5px rgba(246,223,182,.22); }
+  .place-close:hover { color: var(--amber); }
+}
+
+@media (max-width: 620px) {
+  .place-sheet { padding: 4vh 5vw calc(4vh + env(safe-area-inset-bottom)); }
+  .place-grid { gap: .55rem; }
+  .map-places { font-size: .72rem; letter-spacing: .1em; }
+}
+
+/* 隐藏入口开着的时候，板子亮一点，顶上多一行提示 */
+.map-hint {
+  margin-bottom: .7rem;
+  padding: .5rem .8rem;
+  border: 1px dashed rgba(214, 178, 134, .3);
+  border-radius: 4px;
+  font-family: var(--font-serif);
+  font-size: .68rem;
+  letter-spacing: .12em;
+  color: var(--amber-dim);
+  text-align: center;
+}
+
+.map-board.is-editing {
+  box-shadow:
+    inset 0 0 0 1px rgba(214, 178, 134, .35),
+    inset 0 0 70px 24px rgba(0, 0, 0, .5);
+}
+.map-board.is-editing .map-img { opacity: .78; }
+
+.place-add {
+  margin-top: 1rem;
+  background: none;
+  border: 1px solid rgba(214, 178, 134, .32);
+  border-radius: 999px;
+  padding: .42rem 1rem;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: .68rem;
+  letter-spacing: .16em;
+  color: var(--amber-dim);
 }

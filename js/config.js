@@ -146,7 +146,7 @@ const AUDIO = {
   src: 'audio/letter.mp3',
 
   // 按钮上的字，跟着播放状态换
-  label: '一封信的声音',     // 平时，以及正在播的时候
+  label: '这里有声音',     // 平时，以及正在播的时候
   resume: '继续听',          // 暂停了
   again: '再听一遍',         // 听完了
   invite: '点这里听声音',     // 声音没自动起来，请她点一下
@@ -166,14 +166,14 @@ const INTRO = {
     '尤其是，这是仅属于任珈萱和佟玉莹的树洞，那就很酷啦，希望你喜欢。',
     '这里后面还会更新（如果我不懒的话），现在比较简单，后面我们也可以一起想想能加什么功能。下面先来看看吧！'
   ],
-  button: '进树洞'
+  button: '进入'
 };
 
 /* ---------- 第三幕：树洞 ---------- */
 const HOLE = {
   // 页面顶部
   brand: 'ZERO RT',
-  tabs: { memories: '我们的回忆', messages: '留言板', todos: '一起做清单' },
+  tabs: { memories: '我们的回忆', messages: '留言板', todos: '一起做·清单' },
 
   // 顶部那一行小字：{date} {mem} {msg} 会被替换成实际数字
   todayLine: '{date}　这里存着 {mem} 段回忆、{msg} 条留言',
@@ -185,14 +185,14 @@ const HOLE = {
   shuffle: '随便看看',
 
   // 每个分区的提示
-  hintMemories: '照片，和照片背后的那点事',
-  hintMessages: '想说什么都行',
-  hintTodos: '想一起做的事，做完了就勾掉',
+  hintMemories: '照片和它们的故事~',
+  hintMessages: '说点啥',
+  hintTodos: '我们一起去做点什么吧！',
 
   // 空状态文案
-  emptyMemories: '还没有放照片进来。第一张，要不要是你拍的？',
+  emptyMemories: '这里还没有照片。小朋友，快来玩呀？',
   emptyMessages: '还没有人说话。第一个开口的人，可以先骂我一句。',
-  emptyTodos: '还没写下想一起做的事。哪怕只是「去吃一次那家店」。',
+  emptyTodos: '这里还没有要做的事情，难道两个人都是懒蛋吗？噢！应该是勤快蛋！」。',
 
   // 清除完成项
   clearDone: '收拾掉已经做完的',
@@ -205,7 +205,7 @@ const HOLE = {
   // 口令：这里只放"问题"，答案不写在前端（线上由后端校验）
   keyPrompt: '我们的小狗叫什么！',
   keyHint: '写全拼',
-  keyWrong: '不对哦，再想想。',
+  keyWrong: '不对哦，你忘啦？？？。',
 
   // 本地预览专用：没有后端时用它来比对答案，线上不生效
   // 改了 Cloudflare 里的 TREE_KEY，这里也顺手改一下
@@ -282,14 +282,14 @@ const COPY = {
   /* 弹窗：加一段回忆 */
   memory: {
     title: '加一段回忆',
-    sub: '照片会被自动压缩，长边 1600px，肉眼看不出来。',
+    sub: '还挺有意义吧！',
     photo: '照片',
-    drop: '点击选一张<br>或者拖进来',          // 可以换行，用 <br>
-    cropBtn: '卡片显示哪块',
+    drop: '点击选择<br>或拖进来',          // 可以换行，用 <br>
+    cropBtn: '卡片显示',
     titleLabel: '标题',
-    titlePh: '给这张照片起个名字',
+    titlePh: '起个名字',
     noteLabel: '说明',
-    notePh: '那天发生了什么',
+    notePh: '这里发生了什么呀',
     dateLabel: '时间',
     who: '谁',
     cancel: '先不放',
@@ -299,7 +299,7 @@ const COPY = {
   /* 弹窗：卡片取景 */
   crop: {
     title: '卡片上显示哪一块',
-    sub: '拖方框挪位置，拖右下角改大小。点开还是看整张。',
+    sub: '拖方框挪位置，拖右下角改大小。点开看整张。',
     cancel: '不改了',
     ok: '就这样'
   },
@@ -307,24 +307,24 @@ const COPY = {
   /* 弹窗：留言 */
   message: {
     title: '写点什么',
-    sub: '不用讲道理，想到什么说什么。',
+    sub: '啦啦啦，你要说话啦？。',
     who: '谁在说',
     content: '内容',
     contentPh: '……',
     photo: '照片',
-    photoNote: '可以不选，最多两张',
-    cancel: '算了',
+    photoNote: '可不选择',
+    cancel: '先不说了',
     ok: '说完了'
   },
 
   /* 弹窗：加一件事 */
   todo: {
-    title: '想一起做什么',
-    sub: '不用想得很远，想到什么写什么。',
+    title: '想做什么呀',
+    sub: '都OK的',
     item: '这件事',
-    itemPh: '比如：去看一次海',
+    itemPh: '比如：去看海',
     who: '谁想到的',
-    cancel: '算了',
+    cancel: '先不写了',
     ok: '记下'
   },
 

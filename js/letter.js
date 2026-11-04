@@ -292,7 +292,7 @@ const Letter = (function () {
     stopLoops();
     if (audio && !audio.paused) audio.pause();
     revealAll();
-    $('skipBtn').textContent = '已全部展开';
+    $('skipBtn').textContent = COPY.letter.skipDone;
     setTimeout(finish, 320);
   }
 
@@ -339,12 +339,12 @@ const Letter = (function () {
 
     audio.addEventListener('ended', () => {
       $('audioBtn').classList.remove('is-playing');
-      setBtnLabel('再听一遍');
+      setBtnLabel(AUDIO.again);
     });
 
     audio.addEventListener('pause', () => {
       $('audioBtn').classList.remove('is-playing');
-      if (!finished && !audio.ended) setBtnLabel('继续听');
+      if (!finished && !audio.ended) setBtnLabel(AUDIO.resume);
     });
 
     audio.addEventListener('play', () => {
@@ -448,7 +448,7 @@ const Letter = (function () {
     const nx = $('toIntro');
     if (nx) nx.hidden = true;
     const sb = $('skipBtn');
-    if (sb) { sb.style.display = ''; sb.textContent = '显示全文'; }
+    if (sb) { sb.style.display = ''; sb.textContent = COPY.letter.skip; }
 
     try { audio.currentTime = 0; } catch (_) {}
 
@@ -475,13 +475,14 @@ const Letter = (function () {
       } else {
         // 声音没能起来：先按打字机走，之后点按钮可以接管
         if (audio && !audio.paused) startAudioSync();
-        else { setBtnLabel('点这里听声音'); startAuto(); }
+        else { setBtnLabel(AUDIO.invite); startAuto(); }
       }
     });
   }
 
   function init() {
     $('overtureTo').textContent = LETTER.to;
+    setBtnLabel(AUDIO.label);
     initAudio();
     loadTimeline();
 

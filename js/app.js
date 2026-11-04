@@ -7,6 +7,29 @@
   const $ = (id) => document.getElementById(id);
   let holeReady = false;
 
+  /* ---------- 把 config.js 里的界面文字铺到页面上 ----------
+     index.html 里这些元素只留一个 data-text / data-html / data-ph，
+     文字统一从 COPY 里取。想改按钮、弹窗上的字，只改 config.js 就行。 */
+  function copyOf(path) {
+    return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), COPY);
+  }
+
+  function applyCopy(root) {
+    const box = root || document;
+    box.querySelectorAll('[data-text]').forEach((n) => {
+      const v = copyOf(n.dataset.text);
+      if (v != null) n.textContent = v;
+    });
+    box.querySelectorAll('[data-html]').forEach((n) => {
+      const v = copyOf(n.dataset.html);
+      if (v != null) n.innerHTML = v;
+    });
+    box.querySelectorAll('[data-ph]').forEach((n) => {
+      const v = copyOf(n.dataset.ph);
+      if (v != null) n.placeholder = v;
+    });
+  }
+
   function showAct(id) {
     document.querySelectorAll('.act').forEach(a => {
       a.classList.toggle('is-active', a.id === id);
@@ -31,6 +54,7 @@
   }
 
   function boot() {
+    applyCopy();
     Letter.init(() => { /* 信读完了 */ });
 
     /* 介绍页的文字推迟渲染：

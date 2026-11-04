@@ -440,7 +440,6 @@ const Hole = (function () {
       $('keySub').textContent = '（' + HOLE.keyHint + '）';
       $('keyErr').textContent = '';
       $('keyInput').value = '';
-      $('keyInput').placeholder = '答案';
       openModal('keyMask');
       setTimeout(() => $('keyInput').focus(), 300);
     });
@@ -764,17 +763,17 @@ const Hole = (function () {
     $('placeName').textContent = p.name;
     const bits = [];
     if (p.kind === 'home') bits.push(MAP_TEXT.nowHere);
-    if (p.count) bits.push(p.count + ' 张照片');
+    if (p.count) bits.push(MAP_TEXT.placePhotos.replace('{n}', p.count));
     $('placeSub').textContent = bits.join(' · ');
     $('placeGrid').innerHTML = '';
     placeOpenedAt = Date.now();
     $('placeSheet').classList.add('is-on');
 
-    if (!p.id) { placeEmpty('还没放照片。'); return; }
+    if (!p.id) { placeEmpty(MAP_TEXT.placeEmpty); return; }
 
     let shots = [];
     try { shots = await API.listPlacePhotos(p.id); } catch { }
-    if (!shots.length) { placeEmpty('还没放照片。'); return; }
+    if (!shots.length) { placeEmpty(MAP_TEXT.placeEmpty); return; }
 
     const grid = $('placeGrid');
     shots.forEach((s) => {

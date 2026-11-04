@@ -21,7 +21,7 @@
 
   <div class="overture" id="overture">
     <p class="overture-to" id="overtureTo"></p>
-    <button class="overture-hint" id="overtureHint">轻 触 开 始</button>
+    <button class="overture-hint" id="overtureHint" data-text="letter.hint"></button>
   </div>
 
   <div class="letter-scroll" id="letterScroll">
@@ -33,15 +33,15 @@
     </div>
   </div>
 
-  <div class="letter-wait" id="letterWait">声 音 正 在 赶 来 的 路 上</div>
+  <div class="letter-wait" id="letterWait" data-text="letter.wait"></div>
 
   <div class="letter-bar" id="letterBar">
     <button class="audio-btn" id="audioBtn">
       <span class="ring"><i class="audio-icon"></i></span>
-      <span id="audioLabel">一封信的声音</span>
+      <span id="audioLabel"></span>
     </button>
-    <button class="skip-btn" id="skipBtn">显示全文</button>
-    <button class="btn-ghost btn-next" id="toIntro" hidden>下 一 步</button>
+    <button class="skip-btn" id="skipBtn" data-text="letter.skip"></button>
+    <button class="btn-ghost btn-next" id="toIntro" data-text="letter.next" hidden></button>
   </div>
 </section>
 
@@ -140,12 +140,12 @@
     <h2 class="modal-title" id="keyTitle"></h2>
     <p class="modal-sub" id="keySub"></p>
     <div class="field">
-      <input type="password" id="keyInput" autocomplete="off" placeholder="……">
+      <input type="password" id="keyInput" autocomplete="off" data-ph="key.ph">
     </div>
     <p class="form-err" id="keyErr"></p>
     <div class="modal-actions">
-      <button class="btn-plain" data-close="keyMask">算了</button>
-      <button class="btn-solid" id="keyOk">进去</button>
+      <button class="btn-plain" data-close="keyMask" data-text="key.cancel"></button>
+      <button class="btn-solid" id="keyOk" data-text="key.ok"></button>
     </div>
   </div>
 </div>
@@ -155,43 +155,43 @@
      ══════════════════════════════════════════════ -->
 <div class="modal-mask" id="memMask">
   <div class="modal">
-    <h2 class="modal-title">加一段回忆</h2>
-    <p class="modal-sub">照片会被自动压缩，长边 1600px，肉眼看不出来。</p>
+    <h2 class="modal-title" data-text="memory.title"></h2>
+    <p class="modal-sub" data-text="memory.sub"></p>
 
     <div class="field">
-      <label>照片</label>
+      <label data-text="memory.photo"></label>
       <div class="drop" id="drop">
-        <span>点击选一张<br>或者拖进来</span>
+        <span data-html="memory.drop"></span>
         <img id="dropPreview" alt="" hidden>
-        <button class="crop-pick" id="cropPickBtn" type="button" hidden>卡片显示哪块</button>
+        <button class="crop-pick" id="cropPickBtn" type="button" data-text="memory.cropBtn" hidden></button>
         <input type="file" id="fileInput" accept="image/*">
       </div>
     </div>
 
     <div class="field">
-      <label>标题</label>
-      <input type="text" id="memTitle" maxlength="40" placeholder="给这张照片起个名字">
+      <label data-text="memory.titleLabel"></label>
+      <input type="text" id="memTitle" maxlength="40" data-ph="memory.titlePh">
     </div>
 
     <div class="field">
-      <label>说明</label>
-      <textarea id="memNote" rows="3" maxlength="500" placeholder="那天发生了什么"></textarea>
+      <label data-text="memory.noteLabel"></label>
+      <textarea id="memNote" rows="3" maxlength="500" data-ph="memory.notePh"></textarea>
     </div>
 
     <div class="field">
-      <label>时间</label>
+      <label data-text="memory.dateLabel"></label>
       <input type="date" id="memDate">
     </div>
 
     <div class="field">
-      <label>谁</label>
+      <label data-text="memory.who"></label>
       <div class="chip-row" id="memAuthorChips"></div>
     </div>
 
     <p class="form-err" id="memErr"></p>
     <div class="modal-actions">
-      <button class="btn-plain" data-close="memMask">先不放</button>
-      <button class="btn-solid" id="memOk">放进去</button>
+      <button class="btn-plain" data-close="memMask" data-text="memory.cancel"></button>
+      <button class="btn-solid" id="memOk" data-text="memory.ok"></button>
     </div>
   </div>
 </div>
@@ -201,16 +201,16 @@
      ══════════════════════════════════════════════ -->
 <div class="modal-mask" id="cropMask">
   <div class="modal is-crop">
-    <h2 class="modal-title">卡片上显示哪一块</h2>
-    <p class="modal-sub">拖方框挪位置，拖右下角改大小。点开还是看整张。</p>
+    <h2 class="modal-title" data-text="crop.title"></h2>
+    <p class="modal-sub" data-text="crop.sub"></p>
     <div class="cropper" id="cropper">
       <img id="cropImg" alt="">
       <div class="crop-frame" id="cropFrame"><i class="crop-grip"></i></div>
     </div>
     <p class="form-err" id="cropErr"></p>
     <div class="modal-actions">
-      <button class="btn-plain" data-close="cropMask">不改了</button>
-      <button class="btn-solid" id="cropOk">就这样</button>
+      <button class="btn-plain" data-close="cropMask" data-text="crop.cancel"></button>
+      <button class="btn-solid" id="cropOk" data-text="crop.ok"></button>
     </div>
   </div>
 </div>
@@ -220,29 +220,29 @@
      ══════════════════════════════════════════════ -->
 <div class="modal-mask" id="msgMask">
   <div class="modal">
-    <h2 class="modal-title">写点什么</h2>
-    <p class="modal-sub">不用讲道理，想到什么说什么。</p>
+    <h2 class="modal-title" data-text="message.title"></h2>
+    <p class="modal-sub" data-text="message.sub"></p>
 
     <div class="field">
-      <label>谁在说</label>
+      <label data-text="message.who"></label>
       <div class="chip-row" id="msgAuthorChips"></div>
     </div>
 
     <div class="field">
-      <label>内容</label>
-      <textarea id="msgContent" rows="5" maxlength="1000" placeholder="……"></textarea>
+      <label data-text="message.content"></label>
+      <textarea id="msgContent" rows="5" maxlength="1000" data-ph="message.contentPh"></textarea>
     </div>
 
     <div class="field">
-      <label>照片 <em class="lbl-note">可以不选，最多两张</em></label>
+      <label><span data-text="message.photo"></span> <em class="lbl-note" data-text="message.photoNote"></em></label>
       <div class="mini-picker" id="msgPicker"></div>
       <input type="file" id="msgFile" accept="image/*" hidden>
     </div>
 
     <p class="form-err" id="msgErr"></p>
     <div class="modal-actions">
-      <button class="btn-plain" data-close="msgMask">算了</button>
-      <button class="btn-solid" id="msgOk">说完了</button>
+      <button class="btn-plain" data-close="msgMask" data-text="message.cancel"></button>
+      <button class="btn-solid" id="msgOk" data-text="message.ok"></button>
     </div>
   </div>
 </div>
@@ -252,23 +252,23 @@
      ══════════════════════════════════════════════ -->
 <div class="modal-mask" id="todoMask">
   <div class="modal is-narrow">
-    <h2 class="modal-title">想一起做什么</h2>
-    <p class="modal-sub">不用想得很远，想到什么写什么。</p>
+    <h2 class="modal-title" data-text="todo.title"></h2>
+    <p class="modal-sub" data-text="todo.sub"></p>
 
     <div class="field">
-      <label>这件事</label>
-      <input type="text" id="todoText" maxlength="80" placeholder="比如：去看一次海">
+      <label data-text="todo.item"></label>
+      <input type="text" id="todoText" maxlength="80" data-ph="todo.itemPh">
     </div>
 
     <div class="field">
-      <label>谁想到的</label>
+      <label data-text="todo.who"></label>
       <div class="chip-row" id="todoAuthorChips"></div>
     </div>
 
     <p class="form-err" id="todoErr"></p>
     <div class="modal-actions">
-      <button class="btn-plain" data-close="todoMask">算了</button>
-      <button class="btn-solid" id="todoOk">记下</button>
+      <button class="btn-plain" data-close="todoMask" data-text="todo.cancel"></button>
+      <button class="btn-solid" id="todoOk" data-text="todo.ok"></button>
     </div>
   </div>
 </div>
@@ -291,10 +291,10 @@
     <div class="place-head">
       <h2 class="place-name" id="placeName"></h2>
       <span class="place-sub" id="placeSub"></span>
-      <button class="place-add" id="placeAdd" type="button" hidden>加一张照片</button>
+      <button class="place-add" id="placeAdd" type="button" data-text="place.add" hidden></button>
     </div>
     <div class="place-grid" id="placeGrid"></div>
-    <button class="place-close" id="placeClose" type="button">收起</button>
+    <button class="place-close" id="placeClose" type="button" data-text="place.close"></button>
   </div>
 </div>
 
@@ -305,7 +305,7 @@
       <h2 class="log-title" id="logTitle"></h2>
     </div>
     <div class="log-list" id="logList"></div>
-    <button class="log-close" id="logClose" type="button">收 起</button>
+    <button class="log-close" id="logClose" type="button" data-text="log.close"></button>
   </div>
 </div>
 

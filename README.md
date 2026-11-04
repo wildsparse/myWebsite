@@ -7,23 +7,59 @@
 
 ---
 
-## 一、想改文字，只改一个文件
+## 一、想改文字：全站的字都在 `js/config.js`
 
-全部文案都在 `js/config.js` 里，用记事本打开就能改：
+一个文件。信、介绍、树洞的栏目名和提示、地图底下那行、弹窗上所有按钮，
+连"显示全文""先不放""放进去"这些都在里面。
 
-| 改动 | 位置 |
+（`index.html` 里那些元素现在只留一个 `data-text="memory.title"` 这样的标记，
+字本身在 `config.js` 的 `COPY` 里。所以在 html 里是搜不到"加一段回忆"的，
+别去那儿找。)
+
+### 在 GitHub 上改，三步
+
+1. 打开 <https://github.com/wildsparse/myWebsite/blob/main/js/config.js>
+2. 右上角铅笔图标（Edit this file）
+3. 改完滚到底，点 **Commit changes**。等一两分钟，Cloudflare 会自己重新部署。
+
+**找不着某句话在哪一节**：在仓库页面按 <kbd>/</kbd>（或点左上角搜索框），
+把那句话原样粘进去回车，直接落到那一行。
+
+改的时候记住三件事：中文引号、括号随便用；英文单引号 `'` 是代码的边界，
+正文里要用就写成 `\'`；每行末尾的英文逗号别删。
+
+### 对照表
+
+| 页面上看到的 | 在 `config.js` 里叫 |
 | --- | --- |
-| 信的正文 | `LETTER.paras`（每个数组是一个自然段） |
-| 信的开头大字 | `LETTER.heading` |
-| 信的结尾、落款 | `LETTER.closing` / `LETTER.sign` |
-| 音频文件名 | `AUDIO.src` |
-| 口令的题目 | `HOLE.keyPrompt` |
-| 介绍页那几句话 | `INTRO.lines` |
-| 网站名、标签、空状态提示 | `HOLE` |
-| 顶部那一行小字 | `HOLE.todayLine`（`{date}` `{mem}` `{msg}` 会自动替换） |
-| 更新日志 | `CHANGELOG.entries`（在 `js/config.js` 末尾） |
+| 开场那行「轻 触 开 始」、等声音那句、「显示全文」「下 一 步」 | `COPY.letter` |
+| 信开头「给 乐乐」 | `LETTER.to` |
+| 信的抬头大字 | `LETTER.heading` |
+| 信的正文 | `LETTER.paras`（每个 `[]` 是一段，段里每一项是一行） |
+| 信的结尾、落款、日期 | `LETTER.closing`／`LETTER.sign`／`LETTER.signDate` |
+| 录音文件名、声音按钮上那几个字 | `AUDIO.src`／`AUDIO.label` 等 |
+| 介绍页那几句、按钮 | `INTRO.kicker`／`INTRO.title`／`INTRO.lines`／`INTRO.button` |
+| 网站名 `ZERO RT` | `HOLE.brand` |
+| 三个栏目名「我们的回忆 / 留言板 / 一起做清单」 | `HOLE.tabs` |
+| 顶部那行「今天几号，存着几段回忆」 | `HOLE.todayLine`（`{date}` `{mem}` `{msg}` 自动替换） |
+| 视图切换「网格 / 时间线 / 地图」、「随便看看」 | `HOLE.viewGrid`／`viewTimeline`／`viewMap`／`shuffle` |
+| **「照片，和照片背后的那点事」这类提示** | `HOLE.hintMemories`／`hintMessages`／`hintTodos` |
+| 一块都没有时的空话 | `HOLE.emptyMemories`／`emptyMessages`／`emptyTodos` |
+| 「收拾掉已经做完的」 | `HOLE.clearDone` |
+| 右下角加号展开的三项 | `HOLE.addMemory`／`addMessage`／`addTodo` |
+| 口令的题目、提示、答错那句 | `HOLE.keyPrompt`／`keyHint`／`keyWrong` |
+| 两个人的名字（下拉里那两枚） | `HOLE.authors` |
+| 评论那几个词（「3 条评论」「刚刚」） | `HOLE.comment*` |
+| 弹窗：加一段回忆（含字段名、灰色提示字、两个按钮） | `COPY.memory` |
+| 弹窗：写点什么 | `COPY.message` |
+| 弹窗：想一起做什么 | `COPY.todo` |
+| 弹窗：卡片取景 | `COPY.crop` |
+| 弹窗：口令 | `COPY.key` |
+| 地图底下「5 个地方 · 底图…」、点开一块地方 | `MAP_TEXT`／`COPY.place` |
+| 更新日志的入口、标题、每条内容 | `CHANGELOG.link`／`CHANGELOG.title`／`CHANGELOG.entries` |
 
-改完提交，Cloudflare 会自动重新部署，一两分钟生效。
+没进 `config.js` 的只剩一类：一闪而过的提示语，比如"放进去了""没传上""删掉了"，
+这些在 `js/hole.js` 里，跟出错处理写在一起，一般不用动。想改告诉我。
 
 ### 更新日志怎么写
 
@@ -172,7 +208,7 @@ index.html              三幕的骨架 + 三个弹窗
 css/main.css            全部样式
 css/wenkai.css          霞鹜文楷的 @font-face（自动生成，别手改）
 fonts/                  字体分片
-js/config.js            所有文字内容（改这里最多）
+js/config.js            全站的字：信、介绍、树洞、地图、按钮和弹窗、更新日志
 js/letter.js            打字机、音频、节奏
 js/hole.js              三块内容的增删、图片压缩、三种视图（网格/时间线/地图）
 js/api.js               和后端说话（没后端时自动降级到本地存储）

@@ -307,7 +307,7 @@ const COPY = {
   /* 弹窗：留言 */
   message: {
     title: '写点什么',
-    sub: '啦啦啦，你要说话啦？。',
+    sub: '啦啦啦，你要说话啦？',
     who: '谁在说',
     content: '内容',
     contentPh: '……',

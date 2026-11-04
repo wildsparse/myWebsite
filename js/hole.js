@@ -628,15 +628,35 @@ const Hole = (function () {
 
   /* ---------- 地图 ---------- */
   let mapBuilt = false;
+  let mapData = null;
+
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  function svgEl(tag, attrs) {
+    const n = document.createElementNS(SVGNS, tag);
+    if (attrs) Object.keys(attrs).forEach((k) => n.setAttribute(k, attrs[k]));
+    return n;
+  }
+
+  /* 路径文件九十几 KB，第一次进地图才拿，拿过就留着了 */
+  async function loadMapData() {
+    if (mapData) return mapData;
+    const r = await fetch('map/regions.json', { cache: 'force-cache' });
+    if (!r.ok) throw new Error('地图没拿到');
+    mapData = await r.json();
+    return mapData;
+  }
+
+  /* 名字可能写成「济南」也可能写成「济南市」，去掉尾巴再比 */
+  const shortName = (n) => String(n || '').replace(/[\u5e02\u7701\u81ea\u6cbb\u533a\u7279\u522b\u884c\u653f\u533a]$/, '');
 
   async function renderMap() {
     if (mapBuilt) return;
     mapBuilt = true;
-    const box = $('mapPins');
-    if (!box) return;
-    box.innerHTML = '';
 
-    /* 先问数据库；没有（或表还没建）就用配置里写死的那几个 */
+    const svg = $('mapSvg');
+    if (!svg) return;
+
     let list = [];
     try {
       const r = await API.listPlaces();
@@ -644,51 +664,87 @@ const Hole = (function () {
     } catch { }
     if (!list.length && typeof PLACES !== 'undefined') list = PLACES.slice();
 
-    if (!list.length) {
+    let data = null;
+    try { data = await loadMapData(); } catch { }
+
+    if (!data) {
       $('mapFoot').textContent = MAP_TEXT.empty;
       return;
     }
 
+    svg.setAttribute('viewBox', '0 0 ' + data.main.w + ' ' + data.main.h);
+    svg.innerHTML = '';
 
+    /* 省界：只描边，不填色。没去过的地方就是这些线 */
+    const gp = svgEl('g', { class: 'map-prov' });
+    data.main.provinces.forEach((d) => gp.appendChild(svgEl('path', { d: d })));
+    svg.appendChild(gp);
+
+    /* 去过的城市：一片一片透出来 */
+    const shapes = {};
+    Object.keys(data.main.cities).forEach((k) => { shapes[shortName(k)] = data.main.cities[k]; });
+
+    const byName = {};
+    const gc = svgEl('g', { class: 'map-cities' });
     list.forEach((p) => {
-      const b = el('span', 'map-pin' + (p.kind === 'home' ? ' is-home' : ''));
-      b.style.left = p.x + '%';
-      b.style.top = p.y + '%';
-      b.title = p.name;
-      b.appendChild(el('span', 'map-dot'));
-      box.appendChild(b);
-    });
-
-    /* 五座城在地图上只隔几个像素，钉子会叠在一起。
-       所以不按"点到哪个元素"算，按点得离哪颗最近算。 */
-    onTap(box, (e) => {
-      const t = (e.changedTouches && e.changedTouches[0]) || e;
-      const r = box.getBoundingClientRect();
-      const px = ((t.clientX - r.left) / r.width) * 100;
-      const py = ((t.clientY - r.top) / r.height) * 100;
-
-      let best = null, bd = Infinity;
-      list.forEach((p) => {
-        const d = (p.x - px) * (p.x - px) + (p.y - py) * (p.y - py);
-        if (d < bd) { bd = d; best = p; }
+      byName[shortName(p.name)] = p;
+      const d = shapes[shortName(p.name)];
+      if (!d) return;
+      const path = svgEl('path', {
+        d: d,
+        class: 'map-city' + (p.kind === 'home' ? ' is-home' : '')
       });
+      path.setAttribute('data-name', shortName(p.name));
+      gc.appendChild(path);
+    });
+    svg.appendChild(gc);
 
-      /* 编辑模式下：点在已有钉子上就是打开它，点空地才是放新的 */
-      if (editing) {
-        if (best && Math.sqrt(bd) <= 3) { openPlace(best); return; }
-        pendingSpot = { x: px, y: py };
-        openPlaceModal();
-        return;
-      }
+    /* 右下角那一小块：南海诸岛和九段线。
+       用嵌套的 svg 而不是 transform——它自带视口，画出去的部分会被裁掉，
+       不会像 transform 那样漏到框外面来。 */
+    if (data.inset && data.inset.d) {
+      const boxW = 110;
+      const boxH = boxW * (data.inset.h / data.inset.w);
+      const bx = data.main.w - boxW - 24;
+      const by = data.main.h - boxH - 12;
 
-      if (best && Math.sqrt(bd) <= 7) openPlace(best);
+      svg.appendChild(svgEl('rect', {
+        class: 'map-inset-frame',
+        x: bx - 5, y: by - 5,
+        width: boxW + 10, height: boxH + 10
+      }));
+
+      const box = svgEl('svg', {
+        x: bx, y: by, width: boxW, height: boxH,
+        viewBox: '0 0 ' + data.inset.w + ' ' + data.inset.h,
+        preserveAspectRatio: 'xMidYMid meet'
+      });
+      box.appendChild(svgEl('path', { class: 'map-inset-note', d: data.inset.d }));
+      svg.appendChild(box);
+    }
+
+    /* 点一块地方就打开它。城市块在手机上只有十来像素，
+       所以没点中任何一块时，找离手指最近的那一块（四十像素以内算）。 */
+    onTap(svg, (e) => {
+      const t = e.target;
+      const name = t && t.getAttribute ? t.getAttribute('data-name') : null;
+      if (name && byName[name]) { openPlace(byName[name]); return; }
+
+      const pt = (e.changedTouches && e.changedTouches[0]) || e;
+      if (pt.clientX == null) return;
+      let best = null, bd = Infinity;
+      svg.querySelectorAll('.map-city').forEach((n) => {
+        const r = n.getBoundingClientRect();
+        const d = Math.hypot(pt.clientX - (r.left + r.width / 2), pt.clientY - (r.top + r.height / 2));
+        if (d < bd) { bd = d; best = n; }
+      });
+      if (best && bd <= 40) openPlace(byName[best.getAttribute('data-name')]);
     }, null);
 
     const foot = $('mapFoot');
     foot.innerHTML = '';
-    foot.appendChild(el('p', 'map-places', list.map((p) => p.name).join(' · ')));
     foot.appendChild(el('span', 'map-credit',
-      MAP_TEXT.count.replace('{n}', list.length) + ' · ' + MAP_TEXT.credit));
+      (list.length ? MAP_TEXT.count.replace('{n}', list.length) + ' \u00b7 ' : '') + MAP_TEXT.credit));
   }
 
   /* 点开一个地方：照片从接口来，没有就写一句空 */
@@ -739,45 +795,17 @@ const Hole = (function () {
   }
 
   /* ---------- 隐藏入口：连点顶上那行日期五次 ---------- */
+  /* 地图只读，不开编辑界面。这里只控制「点开一块地方之后能不能加照片」。 */
   let editing = false;
-  let pendingSpot = null;
   let editTaps = 0, lastEditTap = 0;
 
   function setEditing(on) {
     editing = on;
     $('mapBoard').classList.toggle('is-editing', on);
     $('mapHint').hidden = !on;
-    $('mapHint').textContent = on ? '点一下地图，把去过的地方放上去' : '';
+    $('mapHint').textContent = on ? '点一块地方，可以给它放照片' : '';
     if (on && memView !== 'map') setView('map');
-    toast(on ? '可以往地图上放地方了' : '放好了');
-  }
-
-  function openPlaceModal() {
-    $('placeNameInput').value = '';
-    $('placeErr').textContent = '';
-    openModal('placeMask');
-    try { $('placeNameInput').focus(); } catch { }
-  }
-
-  async function savePlace() {
-    const name = $('placeNameInput').value.trim();
-    if (!name) { $('placeErr').textContent = '还没写地名'; return; }
-    if (!pendingSpot) { $('placeErr').textContent = '位置丢了，再点一次地图'; return; }
-
-    $('placeSave').disabled = true;
-    try {
-      await API.addPlace({ name, x: pendingSpot.x, y: pendingSpot.y });
-      closeModal('placeMask');
-      pendingSpot = null;
-      mapBuilt = false;
-      await renderMap();
-      toast('记下了');
-    } catch (e) {
-      if (e.message === 'KEY') { closeModal('placeMask'); handleKeyError(); }
-      else $('placeErr').textContent = '没存上：' + e.message;
-    } finally {
-      $('placeSave').disabled = false;
-    }
+    toast(on ? '可以放照片了' : '好了');
   }
 
   async function addPhotoTo(place, file) {
@@ -1379,7 +1407,6 @@ const Hole = (function () {
 
     /* 地图：点开的地方，三种关法同别处 */
     onTap($('placeClose'), closePlace, null);
-    onTap($('placeSave'), savePlace, null);
     onTap($('placeAdd'), () => $('placeFile').click(), null);
     $('placeFile').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];

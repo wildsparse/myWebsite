@@ -1702,7 +1702,7 @@ input, textarea { font: inherit; color: inherit; }
 }
 
 /* ============================================================
-   地图：一块压暗的软木，地图印在上面，去过的地方钉一颗钉子
+   地图：一块压暗的软木，去过的城市从纸上透出光
    ============================================================ */
 
 .mem-map {
@@ -1721,76 +1721,84 @@ input, textarea { font: inherit; color: inherit; }
   box-shadow:
     inset 0 0 0 1px rgba(0, 0, 0, .35),
     inset 0 0 70px 24px rgba(0, 0, 0, .55);
+  padding: 2px 2px 0;
 }
 
-.map-img {
+.map-svg {
   display: block;
   width: 100%;
   height: auto;
-  opacity: .66;
-  user-select: none;
-  -webkit-user-drag: none;
+  overflow: visible;
 }
 
-.map-pins {
-  position: absolute;
-  inset: 0;
+/* 省界：只描边，不填色 */
+.map-prov path {
+  fill: none;
+  stroke: rgba(210, 180, 138, .36);
+  stroke-width: .9;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
-.map-pin {
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  margin: -11px 0 0 -11px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  background: none;
-  border: 0;
+/* 去过的城市：从底下透出来的一片暖光 */
+.map-city {
+  fill: rgba(206, 168, 112, .82);
+  stroke: rgba(242, 214, 170, .85);
+  stroke-width: 1;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  transition: fill .4s var(--ease);
+  filter: drop-shadow(0 0 2px rgba(240, 204, 148, .85)) drop-shadow(0 0 9px rgba(206, 158, 96, .5));
 }
 
-.map-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #f8e4bd;
-  box-shadow: 0 0 0 1.2px rgba(30, 23, 16, .9), 0 0 0 3px rgba(248, 228, 189, .11);
-  animation: pinGlow 5.5s ease-in-out infinite;
+.map-city.is-home {
+  fill: rgba(220, 182, 126, .92);
+  stroke: rgba(252, 228, 186, .95);
 }
 
-.map-pin.is-home .map-dot {
-  box-shadow: 0 0 0 1.2px rgba(30, 23, 16, .9), 0 0 0 4px rgba(248, 228, 189, .17),
-              0 0 0 7.5px rgba(248, 228, 189, .05);
+/* 插图的框和九段线 */
+.map-inset-frame {
+  fill: none;
+  stroke: rgba(150, 128, 100, .28);
+  stroke-width: .6;
+  vector-effect: non-scaling-stroke;
 }
-
-@keyframes pinGlow {
-  0%, 100% { opacity: .82; }
-  50% { opacity: 1; }
+.map-inset-note {
+  fill: none;
+  stroke: rgba(168, 142, 110, .34);
+  stroke-width: .7;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
-@media (prefers-reduced-motion: reduce) {
-  .map-dot { animation: none; }
+.map-inset-land {
+  fill: none;
+  stroke: rgba(198, 166, 124, .22);
+  stroke-width: .6;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
-
 
 .map-foot {
   margin-top: 1rem;
   text-align: center;
 }
-.map-places {
-  font-family: var(--font-serif);
-  font-size: .78rem;
-  letter-spacing: .14em;
-  color: #b39a79;
-}
 .map-credit {
-  display: block;
-  margin-top: .6rem;
   font-family: var(--font-serif);
   font-size: .56rem;
   letter-spacing: .03em;
   color: rgba(160, 138, 112, .40);
+}
+
+@media (hover: hover) {
+  .map-city:hover {
+    fill: rgba(238, 204, 152, .96);
+    filter: drop-shadow(0 0 3px rgba(248, 216, 162, .95)) drop-shadow(0 0 13px rgba(214, 168, 104, .62));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-city { transition: none; }
 }
 
 /* 点开一个地方 */
@@ -1875,14 +1883,12 @@ input, textarea { font: inherit; color: inherit; }
 .place-close:active { color: var(--amber-hi); }
 
 @media (hover: hover) {
-  .map-pin:hover .map-dot { background: #fff2d8; box-shadow: 0 0 0 1.5px rgba(34,26,18,.9), 0 0 0 5px rgba(246,223,182,.22); }
   .place-close:hover { color: var(--amber); }
 }
 
 @media (max-width: 620px) {
   .place-sheet { padding: 4vh 5vw calc(4vh + env(safe-area-inset-bottom)); }
   .place-grid { gap: .55rem; }
-  .map-places { font-size: .72rem; letter-spacing: .1em; }
 }
 
 /* 隐藏入口开着的时候，板子亮一点，顶上多一行提示 */
@@ -1903,7 +1909,7 @@ input, textarea { font: inherit; color: inherit; }
     inset 0 0 0 1px rgba(214, 178, 134, .35),
     inset 0 0 70px 24px rgba(0, 0, 0, .5);
 }
-.map-board.is-editing .map-img { opacity: .78; }
+.map-board.is-editing .map-prov path { stroke: rgba(214, 178, 134, .5); }
 
 .place-add {
   margin-top: 1rem;

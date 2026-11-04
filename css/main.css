@@ -1734,27 +1734,27 @@ input, textarea { font: inherit; color: inherit; }
 /* 省界：只描边，不填色 */
 .map-prov path {
   fill: none;
-  stroke: rgba(210, 180, 138, .36);
-  stroke-width: .9;
+  stroke: rgba(170, 148, 120, .22);
+  stroke-width: .7;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
 /* 去过的城市：从底下透出来的一片暖光 */
 .map-city {
-  fill: rgba(206, 168, 112, .82);
-  stroke: rgba(242, 214, 170, .85);
+  fill: rgba(230, 190, 134, .95);
+  stroke: rgba(255, 231, 190, .92);
   stroke-width: 1;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
   cursor: pointer;
   transition: fill .4s var(--ease);
-  filter: drop-shadow(0 0 2px rgba(240, 204, 148, .85)) drop-shadow(0 0 9px rgba(206, 158, 96, .5));
+  filter: drop-shadow(0 0 3px rgba(255, 224, 170, .9)) drop-shadow(0 0 13px rgba(216, 168, 106, .62));
 }
 
 .map-city.is-home {
-  fill: rgba(220, 182, 126, .92);
-  stroke: rgba(252, 228, 186, .95);
+  fill: rgba(242, 204, 146, .98);
+  stroke: rgba(255, 238, 204, .98);
 }
 
 /* 插图的框和九段线 */
@@ -1792,8 +1792,8 @@ input, textarea { font: inherit; color: inherit; }
 
 @media (hover: hover) {
   .map-city:hover {
-    fill: rgba(238, 204, 152, .96);
-    filter: drop-shadow(0 0 3px rgba(248, 216, 162, .95)) drop-shadow(0 0 13px rgba(214, 168, 104, .62));
+    fill: rgba(255, 226, 176, 1);
+    filter: drop-shadow(0 0 4px rgba(255, 232, 184, 1)) drop-shadow(0 0 18px rgba(224, 178, 116, .7));
   }
 }
 

@@ -1,4 +1,4 @@
-import { json, authorized, unauthorized, noDB, clean } from '../../_lib/auth.js';
+import { json, authorized, unauthorized, noDB, clean } from '../_lib/auth.js';
 
 /* 一个地方下面的照片。
    GET  ?place=1 → 那个地方的全部照片

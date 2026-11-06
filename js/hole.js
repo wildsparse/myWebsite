@@ -967,11 +967,11 @@ const Hole = (function () {
     list.innerHTML = '';
     open.forEach((t, i) => list.appendChild(todoRow(t, i)));
 
-    /* 一条都没有，和「全做完了」，说的是两句话 */
-    const allDone = todoItems.length > 0 && open.length === 0;
+    /* 一条都没有、和「全勾完了」，说的还是同一句话；
+       只是全勾完时下面还有一行折叠的，间距收一点 */
     empty.hidden = open.length > 0;
-    empty.classList.toggle('is-tight', allDone);
-    empty.textContent = allDone ? HOLE.allDone : HOLE.emptyTodos;
+    empty.classList.toggle('is-tight', todoItems.length > 0 && open.length === 0);
+    empty.textContent = HOLE.emptyTodos;
 
     renderDone(sortDone(todoItems));
   }

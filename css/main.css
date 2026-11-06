@@ -473,6 +473,7 @@ input, textarea { font: inherit; color: inherit; }
   font-size: .82rem;
   letter-spacing: .1em;
   color: var(--ink-3);
+  white-space: nowrap;      /* 栏目名长了也别在中间断行 */
   transition: color .4s;
 }
 .tab:hover { color: var(--ink-2); }
@@ -1539,10 +1540,10 @@ input, textarea { font: inherit; color: inherit; }
 @media (max-width: 620px) {
   .letter-inner { padding: 18vh 26px 32vh; }
   .hole-main { padding: 2rem 18px 7rem; }
-  .hole-head-in { padding: 0 18px; height: 56px; }
+  .hole-head-in { padding: 0 18px; height: 56px; gap: .55rem; }
   .mem-grid { grid-template-columns: 1fr; gap: 1.1rem; }
-  .brand { font-size: .94rem; letter-spacing: .24em; }
-  .tab { padding: .5rem .6rem; font-size: .78rem; }
+  .brand { font-size: .92rem; letter-spacing: .14em; white-space: nowrap; }
+  .tabs { gap: .1rem; }
   .letter-bar { gap: 1rem; }
   .modal { padding: 1.5rem; }
   .fab { right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); }
@@ -1555,7 +1556,8 @@ input, textarea { font: inherit; color: inherit; }
   .tl-card { padding: .65rem; gap: .7rem; }
   .tl-year-num { font-size: 1.28rem; }
   .msg-thumb { width: 74px; height: 74px; }
-  .tab { padding: .45rem .5rem; font-size: .76rem; }
+  /* 三个栏目名加起来正好贴着屏宽，字距收一点才不断行 */
+  .tab { padding: .45rem .34rem; font-size: .74rem; letter-spacing: .04em; }
   .view-switch button { padding: .28rem .66rem; font-size: .68rem; }
 
   /* 竖屏看一条回忆：图别占满，标题和日期也得露出来 */
@@ -1569,6 +1571,11 @@ input, textarea { font: inherit; color: inherit; }
   .cmt-chips { grid-column: 1 / -1; }
   /* 小于 16px 的输入框，iOS 一聚焦就把整页放大 */
   .cmt-input { font-size: 16px; }
+}
+
+@media (max-width: 380px) {
+  .brand { font-size: .86rem; letter-spacing: .08em; }
+  .tab { padding: .42rem .26rem; font-size: .7rem; letter-spacing: .01em; }
 }
 
 @media (prefers-reduced-motion: reduce) {

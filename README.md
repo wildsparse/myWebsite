@@ -47,7 +47,6 @@
 | 一块都没有时的空话 | `HOLE.emptyMemories`／`emptyMessages`／`emptyTodos` |
 | 「今年一起做完了 N 件事」「一共做完了 N 件事」 | `HOLE.doneThisYear`／`HOLE.doneAll` |
 | 「2026.11.04 做完了」 | `HOLE.doneAt` |
-| 「都做完了。要不要再添一件？」 | `HOLE.allDone` |
 | 右下角加号展开的三项 | `HOLE.addMemory`／`addMessage`／`addTodo` |
 | 口令的题目、提示、答错那句 | `HOLE.keyPrompt`／`keyHint`／`keyWrong` |
 | 两个人的名字（下拉里那两枚） | `HOLE.authors` |

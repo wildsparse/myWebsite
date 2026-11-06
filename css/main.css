@@ -667,6 +667,8 @@ input, textarea { font: inherit; color: inherit; }
   letter-spacing: .06em;
   color: var(--ink-3);
 }
+/* 清单全勾完时那句，不用占一整屏 */
+.empty.is-tight { padding: 2.4rem 1rem 2.8rem; }
 
 /* ---------- 悬浮按钮 ---------- */
 .fab {
@@ -1131,16 +1133,44 @@ input, textarea { font: inherit; color: inherit; }
   letter-spacing: .1em;
   color: var(--ink-3);
 }
-.clear-done {
-  flex-shrink: 0;
-  font-size: .7rem;
-  letter-spacing: .1em;
+/* 已经做完的：平时只是一行字，右边拉一条细线；点开才铺成一列 */
+.todo-done { margin-top: 1.9rem; }
+.todo-done-toggle {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  width: 100%;
+  padding: .2rem 0;
+  font-size: .72rem;
+  letter-spacing: .13em;
   color: var(--ink-3);
-  padding-bottom: 2px;
-  border-bottom: 1px solid var(--line-2);
-  transition: color .3s, border-color .3s;
+  transition: color .35s;
 }
-.clear-done:hover { color: var(--amber); border-color: rgba(217, 180, 137, .5); }
+.todo-done-toggle::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-2);
+  opacity: .65;
+}
+.todo-done-toggle:hover { color: var(--amber); }
+#todoDoneLabel { transition: color .7s var(--ease); }
+.todo-done-caret {
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg) translate(-1px, -1px);
+  transition: transform .4s var(--ease);
+}
+.todo-done.is-open .todo-done-caret { transform: rotate(-135deg) translate(-1px, -1px); }
+/* 刚勾掉一件、折着看不见时，让这行字亮一下，免得以为被删了 */
+.todo-done.is-ping #todoDoneLabel { color: var(--amber); }
+
+.todo-list.is-archive { margin-top: .7rem; }
+.is-archive .todo-item { padding: .62rem 0; border-bottom-color: rgba(170, 148, 120, .09); }
+.is-archive .todo-text { font-size: .94rem; }
+.is-archive .todo-meta { margin-top: .2rem; font-size: .62rem; }
 
 /* ---------- 留言里的小照片 ---------- */
 .msg-shots { display: flex; gap: .6rem; margin-top: .9rem; flex-wrap: wrap; }

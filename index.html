@@ -108,12 +108,18 @@
     </div>
 
     <div class="pane" id="pane-todos">
-      <div class="pane-bar">
-        <div class="pane-hint"><span id="hintTodos"></span></div>
-        <button class="clear-done" id="clearDone" hidden></button>
-      </div>
+      <div class="pane-hint"><span id="hintTodos"></span></div>
       <div class="todo-list" id="todoList"></div>
       <div class="empty" id="todoEmpty" hidden></div>
+
+      <!-- 已经做完的：平时只是一行字，点开才铺成一列 -->
+      <div class="todo-done" id="todoDone" hidden>
+        <button class="todo-done-toggle" id="todoDoneToggle" type="button">
+          <span id="todoDoneLabel"></span>
+          <i class="todo-done-caret"></i>
+        </button>
+        <div class="todo-list is-archive" id="todoDoneList" hidden></div>
+      </div>
     </div>
 
     <footer class="hole-foot">

@@ -45,7 +45,9 @@
 | 视图切换「网格 / 时间线 / 地图」、「随便看看」 | `HOLE.viewGrid`／`viewTimeline`／`viewMap`／`shuffle` |
 | **「照片，和照片背后的那点事」这类提示** | `HOLE.hintMemories`／`hintMessages`／`hintTodos` |
 | 一块都没有时的空话 | `HOLE.emptyMemories`／`emptyMessages`／`emptyTodos` |
-| 「收拾掉已经做完的」 | `HOLE.clearDone` |
+| 「今年一起做完了 N 件事」「一共做完了 N 件事」 | `HOLE.doneThisYear`／`HOLE.doneAll` |
+| 「2026.11.04 做完了」 | `HOLE.doneAt` |
+| 「都做完了。要不要再添一件？」 | `HOLE.allDone` |
 | 右下角加号展开的三项 | `HOLE.addMemory`／`addMessage`／`addTodo` |
 | 口令的题目、提示、答错那句 | `HOLE.keyPrompt`／`keyHint`／`keyWrong` |
 | 两个人的名字（下拉里那两枚） | `HOLE.authors` |
@@ -104,7 +106,9 @@ ffmpeg -i 录音.m4a -ac 1 -ar 44100 -c:a libmp3lame -b:a 96k letter.mp3
 - **加一段回忆**：选照片 → 自动压缩（长边 1600px，控制在 550KB 以内）→ 填标题、说明、时间 → 放进去。
   照片、标题、说明三样里有一个就能存，只写一句话也完全可以。
 - **写点什么**：选是谁 → 写内容 → 可以顺手带最多两张照片（会压到长边 1000px，点开能看大图）。
-- **加一件事**：写一件想一起做的事，之后在清单里点左边圆圈就勾掉，做完的会沉到底下。
+- **加一件事**：写一件想一起做的事，之后在清单里点左边圆圈就勾掉。
+  勾掉的会沉到清单最下面那一行「今年一起做完了 N 件事」，点开才铺成一列——
+  哪天做完的、谁做的都写着，再点一下圆圈能撤销，点「×」才是真删。
 
 第一次新增时要输一次「暗号」，之后这台设备会记住。
 删除是这样：鼠标移到卡片或条目右上角会出现一个「×」。

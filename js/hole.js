@@ -898,41 +898,88 @@ const Hole = (function () {
   }
 
   /* ---------- 渲染：一起做清单 ---------- */
+  /* 清单分两截：上面是还没做的，下面折一行「今年一起做完了 8 件事」。
+     勾掉的不再从列表里凭空消失，而是沉到那一折里，什么时候都能翻回来。 */
+  let doneOpen = false;
+
+  function sortDone(list) {
+    return list.filter(t => t.done).sort((a, b) =>
+      String(b.done_at || b.created_at).localeCompare(String(a.done_at || a.created_at)));
+  }
+
+  function todoRow(t, i) {
+    const row = el('div', 'todo-item' + (t.done ? ' is-done' : ''));
+    row.style.animationDelay = Math.min(i * 40, 400) + 'ms';
+
+    const check = el('button', 'todo-check');
+    check.setAttribute('aria-label', t.done ? HOLE.markUndo : HOLE.markDone);
+    check.addEventListener('click', () => toggleTodo(t));
+
+    const main = el('div', 'todo-main');
+    main.appendChild(el('span', 'todo-text', t.text));
+
+    /* 做完的写「莹莹　2026.11.04 做完了」，没做的只写人 */
+    const bits = [];
+    if (t.author) bits.push(t.author);
+    if (t.done) {
+      const when = t.done_at || t.created_at;
+      if (when) bits.push(HOLE.doneAt.replace('{date}', fmtDate(when)));
+    }
+    if (bits.length) main.appendChild(el('span', 'todo-meta', bits.join('　')));
+
+    const del = el('button', 'del-btn', '×');
+    del.title = '删掉这条';
+    del.addEventListener('click', () => removeTodo(t));
+
+    row.append(check, main, del);
+    return row;
+  }
+
+  /* 那一行字说今年做了几件；今年一件没有（比如跨年了）就说一共 */
+  function doneLabel(done) {
+    const y = new Date().getFullYear();
+    const thisYear = done.filter((t) => {
+      const w = t.done_at || t.created_at;
+      return w && new Date(w).getFullYear() === y;
+    }).length;
+    if (thisYear) return HOLE.doneThisYear.replace('{n}', thisYear);
+    return HOLE.doneAll.replace('{n}', done.length);
+  }
+
+  function renderDone(done) {
+    const fold = $('todoDone'), box = $('todoDoneList');
+    fold.hidden = done.length === 0;
+    if (!done.length) { box.innerHTML = ''; return; }
+
+    $('todoDoneLabel').textContent = doneLabel(done);
+    fold.classList.toggle('is-open', doneOpen);
+    box.hidden = !doneOpen;
+    box.innerHTML = '';
+    if (!doneOpen) return;                 /* 折着就不用建节点 */
+    done.forEach((t, i) => box.appendChild(todoRow(t, i)));
+  }
+
   function renderTodos() {
     const list = $('todoList');
+    const empty = $('todoEmpty');
+    const open = todoItems.filter(t => !t.done);
+
     list.innerHTML = '';
-    $('todoEmpty').hidden = todoItems.length > 0;
-    $('todoEmpty').textContent = HOLE.emptyTodos;
+    open.forEach((t, i) => list.appendChild(todoRow(t, i)));
 
-    const doneCount = todoItems.filter(t => t.done).length;
-    const clearBtn = $('clearDone');
-    clearBtn.hidden = doneCount === 0;
-    clearBtn.textContent = HOLE.clearDone + '（' + doneCount + '）';
+    /* 一条都没有，和「全做完了」，说的是两句话 */
+    const allDone = todoItems.length > 0 && open.length === 0;
+    empty.hidden = open.length > 0;
+    empty.classList.toggle('is-tight', allDone);
+    empty.textContent = allDone ? HOLE.allDone : HOLE.emptyTodos;
 
-    todoItems.forEach((t, i) => {
-      const row = el('div', 'todo-item' + (t.done ? ' is-done' : ''));
-      row.style.animationDelay = Math.min(i * 40, 400) + 'ms';
+    renderDone(sortDone(todoItems));
+  }
 
-      const check = el('button', 'todo-check');
-      check.setAttribute('aria-label', t.done ? '撤销' : '做完了');
-      check.addEventListener('click', () => toggleTodo(t));
-
-      const main = el('div', 'todo-main');
-      main.appendChild(el('span', 'todo-text', t.text));
-      const meta = el('span', 'todo-meta');
-      if (t.author) meta.textContent = t.author;
-      if (t.done && t.done_at) {
-        meta.textContent = (t.author ? t.author + '　' : '') + fmtDate(t.done_at) + ' 做完了';
-      }
-      if (meta.textContent) main.appendChild(meta);
-
-      const del = el('button', 'del-btn', '×');
-      del.title = '删掉这条';
-      del.addEventListener('click', () => removeTodo(t));
-
-      row.append(check, main, del);
-      list.appendChild(row);
-    });
+  /* 点那行字，铺开 / 收起 */
+  function toggleDoneFold() {
+    doneOpen = !doneOpen;
+    renderDone(sortDone(todoItems));
   }
 
   /* ---------- 删除 ---------- */
@@ -977,23 +1024,6 @@ const Hole = (function () {
     } catch (e) {
       if (e.message === 'KEY') handleKeyError();
       else toast('没删掉，等下再试');
-    }
-  }
-
-  async function clearDoneTodos() {
-    const done = todoItems.filter(t => t.done);
-    if (!done.length) return;
-    if (!confirm('把已经做完的这 ' + done.length + ' 件收起来？') ) return;
-    if (!API.hasKey()) { const ok = await ensureKey(); if (!ok) return; }
-    try {
-      for (const t of done) await API.delTodo(t.id);
-      const ids = new Set(done.map(t => String(t.id)));
-      todoItems = todoItems.filter(x => !ids.has(String(x.id)));
-      renderTodos();
-      toast('收好了');
-    } catch (e) {
-      if (e.message === 'KEY') handleKeyError();
-      else toast('没弄完，等下再试');
     }
   }
 
@@ -1231,7 +1261,15 @@ const Hole = (function () {
         return String(b.created_at).localeCompare(String(a.created_at));
       });
       renderTodos();
-      if (next) toast('又少一件');
+      if (next) {
+        toast('又少一件');
+        /* 折着看不见的时候，让「已经做完的」那行亮一下，免得以为被删了 */
+        if (!doneOpen) {
+          const fold = $('todoDone');
+          fold.classList.add('is-ping');
+          setTimeout(() => fold.classList.remove('is-ping'), 900);
+        }
+      }
     } catch (e) {
       if (e.message === 'KEY') handleKeyError();
       else toast('没改成，等下再试');
@@ -1452,7 +1490,7 @@ const Hole = (function () {
       if (cb) cb(crop);
     });
 
-    $('clearDone').addEventListener('click', clearDoneTodos);
+    $('todoDoneToggle').addEventListener('click', toggleDoneFold);
 
     /* FAB */
     const fab = $('fab'), menu = $('fabMenu');

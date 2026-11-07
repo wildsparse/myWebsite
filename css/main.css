@@ -1256,12 +1256,26 @@ input, textarea { font: inherit; color: inherit; }
   align-items: center;
   justify-content: center;
   padding: 3vh 3vw 4.8rem;
-  background: rgba(6, 5, 4, .95);
+  background: var(--bg-deep);
   opacity: 0;
   pointer-events: none;
   transition: opacity .4s var(--ease);
 }
 .lightbox.is-on { opacity: 1; pointer-events: auto; }
+
+/* 内容比屏幕高时，底下是裁断的；蒙一层渐隐，看着像淡出而不是被切断。
+   纯色背景下几乎看不出来，所以不滚的时候也不碍事。 */
+.lightbox::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5.5rem;
+  background: linear-gradient(to top, var(--bg-deep) 45%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
 
 /* 底下一个出口。跟着浮层走、不进滚动区，滚到哪儿都点得着 */
 .lb-close {
@@ -1278,6 +1292,7 @@ input, textarea { font: inherit; color: inherit; }
   background: none;
   border: 0;
   cursor: pointer;
+  z-index: 2;
   transition: color .3s;
 }
 .lb-close:hover,
@@ -1299,6 +1314,15 @@ input, textarea { font: inherit; color: inherit; }
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+/* 说明和评论捆成一栏：宽屏时挪到图片右边，窄屏时还是叠在下面 */
+.lb-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 620px;
+  flex: 0 0 auto;
+}
 .lightbox img {
   max-width: 100%;
   max-height: 70vh;
@@ -1309,11 +1333,11 @@ input, textarea { font: inherit; color: inherit; }
 }
 .lb-cap {
   width: 100%;
-  max-width: 620px;
   max-height: 34vh;
   overflow-y: auto;
   text-align: left;
   padding-bottom: .4rem;
+  flex: 0 0 auto;        /* 空间不够就让整块滚，别把字挤成一条缝 */
 }
 .lb-cap:empty { display: none; }
 .lb-title {
@@ -1340,8 +1364,8 @@ input, textarea { font: inherit; color: inherit; }
 .lb-meta span + span::before { content: '·'; margin: 0 .5em; }
 .lb-cmt {
   width: 100%;
-  max-width: 620px;
   text-align: left;
+  flex: 0 0 auto;
 }
 
 /* ---------- 卡片取景 ---------- */
@@ -1599,6 +1623,43 @@ input, textarea { font: inherit; color: inherit; }
 /* ============================================================
    响应式
    ============================================================ */
+
+/* 宽屏：图片在左，说明和评论在右。
+   单栏时竖图几乎占满屏幕高度，说明被挤到图下面只剩一条缝，
+   字全糊在一起——这是绕不过去的空间问题，只能换布局。 */
+@media (min-width: 820px) {
+  .lightbox { padding: 3vh 3vw 5rem; }
+
+  .lb-box {
+    flex-direction: row;
+    align-items: center;
+    gap: 2.4rem;
+    width: fit-content;
+    max-width: 92vw;
+    max-height: calc(100vh - 10rem);
+    overflow: hidden;
+  }
+  .lb-box > img {
+    flex: 0 1 auto;
+    max-height: calc(100vh - 10rem);
+    max-width: 48vw;
+    width: auto;
+  }
+  .lb-side {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 300px;
+    max-width: 460px;
+    max-height: calc(100vh - 10rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    gap: 1.4rem;
+    padding-right: .4rem;
+  }
+  .lb-cap { max-height: none; overflow: visible; }
+  /* 评论多的时候让它自己滚，输入框留在下面，别被右栏一起裁掉 */
+  .lb-cmt .cmt-list { max-height: 26vh; overflow-y: auto; }
+}
 @media (max-width: 860px) {
   .mem-grid { grid-template-columns: repeat(2, 1fr); gap: 1.1rem; }
 }

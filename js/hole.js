@@ -165,14 +165,15 @@ const Hole = (function () {
 
     let items = [];
 
-    function paint() {
+    /* 只有刚发出的一条才滚到底；打开的时候得从第一条读起 */
+    function paint(toEnd) {
       list.innerHTML = '';
       if (!items.length) {
         list.appendChild(el('div', 'cmt-empty', HOLE.commentEmpty));
         return;
       }
       items.forEach((c) => list.appendChild(commentRow(c, remove)));
-      list.scrollTop = list.scrollHeight;
+      if (toEnd) list.scrollTop = list.scrollHeight;
     }
 
     async function remove(c) {
@@ -204,7 +205,7 @@ const Hole = (function () {
         });
         items.push(item);
         input.value = '';
-        paint();
+        paint(true);
         commentCounts[cmtKey(type, id)] = cmtN(type, id) + 1;
         refreshCounts();
       } catch (e) {

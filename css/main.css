@@ -638,7 +638,21 @@ input, textarea { font: inherit; color: inherit; }
   color: #dcd3c5;
   white-space: pre-wrap;
   word-break: break-word;
+  /* 列表里只露五行，长的一律截住，点开才铺全 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
 }
+.msg-card.is-open .msg-body {
+  display: block;
+  overflow: visible;
+}
+/* 行数够不着五行的，就别提「展开全文」 */
+.msg-more { display: none; }
+/* 被截住的、或者已经展开的，右边才出现这一句 */
+.msg-card.is-clipped .msg-more,
+.msg-card.is-open .msg-more { display: inline; }
 
 /* ---------- 删除 ---------- */
 .del-btn {
@@ -1241,20 +1255,47 @@ input, textarea { font: inherit; color: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3vh 3vw;
+  padding: 3vh 3vw 4.8rem;
   background: rgba(6, 5, 4, .95);
   opacity: 0;
   pointer-events: none;
   transition: opacity .4s var(--ease);
 }
 .lightbox.is-on { opacity: 1; pointer-events: auto; }
+
+/* 底下一个出口。跟着浮层走、不进滚动区，滚到哪儿都点得着 */
+.lb-close {
+  position: absolute;
+  left: 50%;
+  bottom: 1.2rem;
+  transform: translateX(-50%);
+  padding: .5rem 1rem;
+  font-family: var(--font-serif);
+  font-size: .72rem;
+  letter-spacing: .3em;
+  text-indent: .3em;
+  color: var(--ink-3);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: color .3s;
+}
+.lb-close:hover,
+.lb-close:focus-visible { color: var(--amber); }
+/* 头一回打开时轻轻跳两下，之后就安静了 */
+@keyframes lbTip {
+  0%, 100% { opacity: .5; }
+  50% { opacity: 1; color: var(--amber); }
+}
+.lb-close.is-tip { animation: lbTip 1.3s ease-in-out 2; }
 .lb-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
   width: min(940px, 94vw);
-  max-height: 94vh;
+  /* 留够上下留白和底下那行「收 起」，别让内容压到按钮上 */
+  max-height: calc(100vh - 9rem);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -1264,6 +1305,7 @@ input, textarea { font: inherit; color: inherit; }
   flex: 0 0 auto;
   object-fit: contain;
   border-radius: 3px;
+  cursor: zoom-out;      /* 点一下图就缩回去 */
 }
 .lb-cap {
   width: 100%;
@@ -1343,7 +1385,19 @@ input, textarea { font: inherit; color: inherit; }
 .crop-pick:active { background: rgba(217, 180, 137, .16); }
 
 #cropMask { z-index: 240; }
-.modal.is-crop { max-width: 560px; }
+/* 底下那点留白交给按钮自己撑，别再叠一层空 */
+.modal.is-crop { max-width: 560px; padding-bottom: 0; }
+
+/* 竖图会把弹窗撑得比屏幕高，按钮就滚到看不见的地方去了。
+   钉在弹窗底下：图再高，「不改了 / 就这样」也一直在。 */
+.modal.is-crop .modal-actions {
+  position: sticky;
+  bottom: 0;
+  margin: 1.2rem 0 0;
+  padding: .9rem 0 1.4rem;
+  background: var(--panel);
+  box-shadow: 0 -18px 22px -18px #000;
+}
 .cropper {
   position: relative;
   width: 100%;
@@ -1424,6 +1478,14 @@ input, textarea { font: inherit; color: inherit; }
   align-items: center;
   gap: .6rem;
 }
+/* 「展开全文」推到右边，跟左边的评论数分开 */
+.msg-more {
+  margin-left: auto;
+  font-size: .7rem;
+  letter-spacing: .1em;
+  color: var(--ink-3);
+}
+.msg-card.is-clipped { cursor: pointer; }
 .msg-card.is-open::before { background: linear-gradient(to bottom, var(--amber), transparent); }
 /* 展开后不必再提示「评论」，内容就在眼前 */
 .msg-card.is-open .cmt-count { display: none; }
@@ -1563,7 +1625,7 @@ input, textarea { font: inherit; color: inherit; }
   /* 竖屏看一条回忆：图别占满，标题和日期也得露出来 */
   .lightbox { padding: 2vh 4vw calc(2vh + env(safe-area-inset-bottom)); }
   .lightbox img { max-height: 52vh; }
-  .lb-box { gap: 1rem; max-height: 96vh; }
+  .lb-box { gap: 1rem; max-height: calc(100vh - 8.5rem); }
   .lb-cap { max-height: none; overflow: visible; }
 
   /* 手机上作者放一行，输入框和发送放一行 */

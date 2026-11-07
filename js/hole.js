@@ -363,6 +363,21 @@ const Hole = (function () {
     $('lightboxCmt').innerHTML = '';
     lbOpenedAt = Date.now();
     $('lightbox').classList.add('is-on');
+    tipClose();
+  }
+
+  /* 头一回打开，让底下那个「收 起」跳两下；之后就不再打扰 */
+  let lbTipped = false;
+  function tipClose() {
+    if (lbTipped) return;
+    lbTipped = true;
+    try {
+      if (localStorage.getItem('th.tip.lightbox')) return;
+      localStorage.setItem('th.tip.lightbox', '1');
+    } catch (e) { return; }
+    const b = $('lbClose');
+    b.classList.add('is-tip');
+    setTimeout(() => b.classList.remove('is-tip'), 2800);
   }
 
   /* 时间线上点开一条：图看大，说明看全 */
@@ -416,6 +431,7 @@ const Hole = (function () {
 
     lbOpenedAt = Date.now();
     $('lightbox').classList.add('is-on');
+    tipClose();
   }
 
   function closeLightbox() {
@@ -877,23 +893,41 @@ const Hole = (function () {
 
       const foot = el('div', 'msg-foot');
       foot.appendChild(countTag('message', m.id));
+      /* 正文超过五行的才有这一句，短的不提，免得明明看完了还叫人展开 */
+      const more = el('span', 'msg-more', COPY.message.more);
+      foot.appendChild(more);
       card.appendChild(foot);
 
       card.appendChild(del);
 
-      /* 点开才看见评论，再点收起 */
+      /* 点开：正文铺全，评论跟着露出来。再点收起 */
       onTap(card, () => {
         const open = card.querySelector('.cmt-box');
         if (open) {
           open.remove();
           card.classList.remove('is-open');
+          more.textContent = COPY.message.more;
           return;
         }
         card.classList.add('is-open');
+        more.textContent = COPY.message.less;
         card.appendChild(commentBox('message', m.id));
       }, '.cmt-box, button, input, a');
 
       list.appendChild(card);
+    });
+
+    markClipped();
+  }
+
+  /* 哪条正文被拦住、后面还有，才给它挂「展开全文」。
+     面板没露脸时量出来全是零，所以等它真有尺寸了再量一次。 */
+  function markClipped() {
+    requestAnimationFrame(() => {
+      $('msgList').querySelectorAll('.msg-card:not(.is-open) .msg-body').forEach((body) => {
+        const cut = body.scrollHeight - body.clientHeight > 2;
+        body.closest('.msg-card').classList.toggle('is-clipped', cut);
+      });
     });
   }
 
@@ -1561,10 +1595,14 @@ const Hole = (function () {
       if (e.key === 'Enter') submitKey();
     });
 
-    /* 看大图：只有点外面的黑边才关，点图片、点输入框都不关 */
+    /* 看大图：点黑边、点照片本身，都能收起；点说明和评论不算 */
     $('lightbox').addEventListener('click', (e) => {
-      if (e.target === $('lightbox')) closeLightbox();
+      if (e.target === $('lightbox') || e.target.id === 'lightboxImg') closeLightbox();
     });
+    $('lbClose').addEventListener('click', () => closeLightbox());
+
+    /* 留言那栏从藏到露、手机转个向，行数都会变，跟着重量 */
+    if (window.ResizeObserver) new ResizeObserver(markClipped).observe($('msgList'));
 
     /* 关闭 */
     document.querySelectorAll('[data-close]').forEach(btn => {

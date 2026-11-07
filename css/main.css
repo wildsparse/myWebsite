@@ -1385,18 +1385,21 @@ input, textarea { font: inherit; color: inherit; }
 .crop-pick:active { background: rgba(217, 180, 137, .16); }
 
 #cropMask { z-index: 240; }
-/* 底下那点留白交给按钮自己撑，别再叠一层空 */
-.modal.is-crop { max-width: 560px; padding-bottom: 0; }
-
-/* 竖图会把弹窗撑得比屏幕高，按钮就滚到看不见的地方去了。
-   钉在弹窗底下：图再高，「不改了 / 就这样」也一直在。 */
-.modal.is-crop .modal-actions {
-  position: sticky;
-  bottom: 0;
-  margin: 1.2rem 0 0;
-  padding: .9rem 0 1.4rem;
-  background: var(--panel);
-  box-shadow: 0 -18px 22px -18px #000;
+/* 竖图会把弹窗撑得比屏幕还高，按钮就被推到看不见的地方。
+   不去钉按钮——按钮浮起来会压在图上，字和框全糊在一起。
+   改成让图自己让位：长边有限高，整个弹窗就装得下了。 */
+.modal.is-crop { max-width: 560px; }
+.modal.is-crop .cropper {
+  width: fit-content;
+  max-width: 100%;
+  margin: .2rem auto .4rem;
+}
+.modal.is-crop .cropper img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  /* 平常按 44vh 走；屏幕矮（比如手机横过来）时，按弹窗剩下的地方让 */
+  max-height: min(44vh, calc(88vh - 190px));
 }
 .cropper {
   position: relative;
